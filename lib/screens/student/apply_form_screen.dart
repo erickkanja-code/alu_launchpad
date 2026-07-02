@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
 class ApplyFormScreen extends StatelessWidget {
-  const ApplyFormScreen({super.key});
+  final String opportunityId;
+  const ApplyFormScreen({super.key, required this.opportunityId});
 
   // This widget is the root of your application.
   @override

@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
 class ApplicantDetailScreen extends StatelessWidget {
-  const ApplicantDetailScreen({super.key});
+  final String applicationId;
+  const ApplicantDetailScreen({super.key, required this.applicationId});
 
   // This widget is the root of your application.
   @override

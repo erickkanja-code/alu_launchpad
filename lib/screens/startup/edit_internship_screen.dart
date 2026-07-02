@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
 class EditInternshipScreen extends StatelessWidget {
-  const EditInternshipScreen({super.key});
+  final String opportunityId;
+  const EditInternshipScreen({super.key, required this.opportunityId});
 
   // This widget is the root of your application.
   @override

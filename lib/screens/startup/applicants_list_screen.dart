@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
 class ApplicantsListScreen extends StatelessWidget {
-  const ApplicantsListScreen({super.key});
+  final String opportunityId;
+  const ApplicantsListScreen({super.key, required this.opportunityId});
 
   // This widget is the root of your application.
   @override
