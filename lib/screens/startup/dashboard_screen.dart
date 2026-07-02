@@ -1,0 +1,14 @@
+import 'package:flutter/material.dart';
+
+class DashboardScreen extends StatelessWidget {
+  const DashboardScreen({super.key});
+
+  // This widget is the root of your application.
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text('Dashboard Screen')),
+      body: Center(child: Text('Dashboard')),
+    );
+  }
+}
