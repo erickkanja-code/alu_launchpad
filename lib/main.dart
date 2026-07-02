@@ -111,30 +111,126 @@ class _UserRoleState extends State<UserRole> {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    return Column(
+      children: [Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         ElevatedButton(
+          style: _isStudent ? ElevatedButton.styleFrom(
+            elevation: 10,
+            textStyle: Theme.of(context).textTheme.titleMedium,
+          ): ElevatedButton.styleFrom(
+            elevation: 5,
+          ),
           onPressed: (){
             setState(() {
               _isStudent = !_isStudent;
             });
           },
+          
           child: Text("Student") 
 ),
         SizedBox(
           width: 40,
         ),
         ElevatedButton(
+          style: _isStudent ? ElevatedButton.styleFrom(
+            elevation: 5,
+          ): ElevatedButton.styleFrom(
+            elevation: 10,
+            textStyle: Theme.of(context).textTheme.titleMedium,
+
+          ),
           onPressed: (){
             setState(() {
               _isStudent = !_isStudent;
             });
           },
-          child: Text("Startup") 
+          child: Text("Startup") //make sure the widget takes isstudent as a constructor
           
-)
+) 
       ]
-    );
+    ),
+    StudentLoginForm(),
+    ]);
   }
 }
+
+class StudentLoginForm extends StatefulWidget {
+  @override
+  State<StudentLoginForm> createState() => _StudentLoginFormState();
+}
+
+class _StudentLoginFormState extends State<StudentLoginForm> {
+  final _formKey = GlobalKey<FormState>();
+  final _fullNameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+
+  // final _emailFocus = FocusNode();
+  // final _passwordFocus = FocusNode();
+
+  @override
+  Widget build(BuildContext context){
+    return Form(
+      key: _formKey,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text("Full Name"),
+          TextFormField(
+            controller: _fullNameController,
+            decoration: InputDecoration(
+              labelText: 'Full Name',
+            ),
+            validator:(value){
+              if (value == null || value.trim().isEmpty){
+                return 'Name is required';
+              }
+              return null;
+            },
+          ),
+          Text("Email Address"),
+          TextFormField(
+            controller: _emailController,
+            decoration: InputDecoration(
+              labelText: 'jane@example.com',
+            ),
+            validator:(value){
+              if (value == null || value.trim().isEmpty){
+                return 'Email is required';
+              } else if (!value.contains('@')){
+                return 'Invalid email';
+              } else {
+              return null;}
+            },
+          ),
+        
+          Text("Password"),
+          TextFormField(
+            obscureText: true,
+            controller: _passwordController,
+            decoration: InputDecoration(
+              labelText: '......',
+              border: OutlineInputBorder(),
+              contentPadding: EdgeInsets.symmetric(horizontal: 4),
+
+            ),
+            validator:(value){
+              if (value == null || value.trim().isEmpty){
+                return 'Name is required';
+              }
+              return null;
+            },
+          ),
+          ElevatedButton(
+            onPressed: () {},
+            child: Text("Create Account")
+            )
+        ],
+        )
+
+      );
+  }
+}
+
