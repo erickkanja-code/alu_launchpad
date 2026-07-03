@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:alu_launchpad/route.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
