@@ -13,8 +13,9 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp.router(
-      title: 'Flutter Demo',
+      title: 'ALU Launchpad',
       theme: ThemeData(
+        useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(seedColor: Color(0xFF0052cc)),
         textTheme: TextTheme(
           headlineLarge: TextStyle(
@@ -39,7 +40,7 @@ class MyApp extends StatelessWidget {
             fontFamily: 'Inter',
             fontSize: 12,
             fontWeight: FontWeight.w400,
-            height: 0.75,
+            height: 1.4,
           ),
         )
       ),
