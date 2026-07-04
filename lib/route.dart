@@ -17,7 +17,7 @@ import 'package:alu_launchpad/screens/student/student_profile_screen.dart';
 final appRouter = GoRouter(
   routes: [
     GoRoute(
-      path: '/',
+      path: '/create',
       builder: (context, state) => CreateAccountScreen(),
     ),
     GoRoute(
@@ -37,7 +37,7 @@ final appRouter = GoRouter(
       builder: (context, state) => ApplicantsListScreen(opportunityId: state.pathParameters['opportunityId']!),
     ),
     GoRoute(
-      path: '/startup/dashboard',
+      path: '/',
       builder: (context, state) => DashboardScreen(),
     ),
     GoRoute(

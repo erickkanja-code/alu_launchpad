@@ -267,7 +267,7 @@ class _AccountForm extends StatelessWidget {
             child: ElevatedButton(
               onPressed: () {
                 if (formKey.currentState!.validate()) {
-                  context.push('/startup/dashboard');
+                  context.go('/');
                   // auth logic comes Day 4
                 }
               },
@@ -318,11 +318,17 @@ class _Footer extends StatelessWidget {
           text: 'Already have an account? ',
           style: Theme.of(context).textTheme.bodyMedium,
           children: [
-            TextSpan(
-              text: 'Log In',
+            WidgetSpan(
+              child: GestureDetector(
+                onTap: () {
+                  context.push('/login');
+                },
+                child: Text('Log In',
               style: TextStyle(
                 color: Theme.of(context).colorScheme.primary,
                 fontWeight: FontWeight.w600,
+              ),
+              ),
               ),
             ),
           ],

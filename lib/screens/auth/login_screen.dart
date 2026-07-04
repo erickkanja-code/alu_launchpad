@@ -1,197 +1,245 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-class LoginScreen extends StatelessWidget {
+class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
   @override
-  Widget build (BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'ALU Launchpad', 
-          style: Theme.of(context).textTheme.headlineLarge?.copyWith(color:Theme.of(context).colorScheme.primary),),
-        backgroundColor: Colors.transparent,
-        shape: Border (
-          bottom: BorderSide(
-            color: Colors.blueGrey,
-            width: 2.0
-          )
-          )
-      ),
-      body: Padding(
-        padding: EdgeInsetsGeometry.symmetric(horizontal: 10),
-        child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(height: 10,),
-          CreateAccount(),
-          SizedBox(height: 20,),
-          SizedBox(width: 300, child: Text("I am a...", style: Theme.of(context).textTheme.bodyMedium)),
-          UserRole(),
-          ElevatedButton(onPressed: () => context.push('/startup/dashboard'), child: Text("Open Dashboard"))
-
-          ],
-      )
-      ),
-    );
-  }
-}        
-
-class CreateAccount extends StatelessWidget {
-  @override
-  Widget build(BuildContext context){
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      crossAxisAlignment: CrossAxisAlignment.center,
-      
-        children: [
-          Text('Create Account', style: Theme.of(context).textTheme.headlineLarge),
-          SizedBox(
-            height: 10,
-          ),
-          SizedBox(
-            width: 360,
-            child: Text('Join ALU Launchpad to connect talent with opportunity', style:Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w400), textAlign: TextAlign.center),)
-        ],
-    );
-  }
-
+  State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class UserRole extends StatefulWidget {
-  @override
-  State<UserRole> createState() => _UserRoleState();
-}
-
-class _UserRoleState extends State<UserRole> {
-  bool _isStudent = true;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        ElevatedButton(
-          style: _isStudent ? ElevatedButton.styleFrom(
-            elevation: 10,
-            textStyle: Theme.of(context).textTheme.titleMedium,
-          ): ElevatedButton.styleFrom(
-            elevation: 5,
-          ),
-          onPressed: (){
-            setState(() {
-              _isStudent = !_isStudent;
-            });
-          },
-          
-          child: Text("Student") 
-),
-        SizedBox(
-          width: 40,
-        ),
-        ElevatedButton(
-          style: _isStudent ? ElevatedButton.styleFrom(
-            elevation: 5,
-          ): ElevatedButton.styleFrom(
-            elevation: 10,
-            textStyle: Theme.of(context).textTheme.titleMedium,
-
-          ),
-          onPressed: (){
-            setState(() {
-              _isStudent = !_isStudent;
-            });
-          },
-          child: Text("Startup") //make sure the widget takes isstudent as a constructor
-          
-) 
-      ]
-    ),
-    StudentLoginForm(),
-    ]);
-  }
-}
-
-class StudentLoginForm extends StatefulWidget {
-  @override
-  State<StudentLoginForm> createState() => _StudentLoginFormState();
-}
-
-class _StudentLoginFormState extends State<StudentLoginForm> {
+class _LoginScreenState extends State<LoginScreen> {
+  bool _obscurePassword = true;
   final _formKey = GlobalKey<FormState>();
-  final _fullNameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
 
-  // final _emailFocus = FocusNode();
-  // final _passwordFocus = FocusNode();
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
 
   @override
-  Widget build(BuildContext context){
-    return Form(
-      key: _formKey,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text("Full Name"),
-          TextFormField(
-            controller: _fullNameController,
-            decoration: InputDecoration(
-              labelText: 'Full Name',
-            ),
-            validator:(value){
-              if (value == null || value.trim().isEmpty){
-                return 'Name is required';
-              }
-              return null;
-            },
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 48),
+              _Header(),
+              const SizedBox(height: 32),
+              _LoginForm(
+                formKey: _formKey,
+                emailController: _emailController,
+                passwordController: _passwordController,
+                obscurePassword: _obscurePassword,
+                onTogglePassword: () =>
+                    setState(() => _obscurePassword = !_obscurePassword),
+              ),
+              const SizedBox(height: 24),
+              _Footer(),
+            ],
           ),
-          Text("Email Address"),
-          TextFormField(
-            controller: _emailController,
-            decoration: InputDecoration(
-              labelText: 'jane@example.com',
-            ),
-            validator:(value){
-              if (value == null || value.trim().isEmpty){
-                return 'Email is required';
-              } else if (!value.contains('@')){
-                return 'Invalid email';
-              } else {
-              return null;}
-            },
-          ),
-        
-          Text("Password"),
-          TextFormField(
-            obscureText: true,
-            controller: _passwordController,
-            decoration: InputDecoration(
-              labelText: '......',
-              border: OutlineInputBorder(),
-              contentPadding: EdgeInsets.symmetric(horizontal: 4),
-
-            ),
-            validator:(value){
-              if (value == null || value.trim().isEmpty){
-                return 'Name is required';
-              }
-              return null;
-            },
-          ),
-          ElevatedButton(
-            onPressed: () {},
-            child: Text("Create Account")
-            )
-        ],
-        )
-
-      );
+        ),
+      ),
+    );
   }
 }
 
+class _Header extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Center(
+          child: Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primary,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(
+              Icons.rocket_launch_rounded,
+              color: Colors.white,
+              size: 28,
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Center(
+          child: Text(
+            'ALU Launchpad',
+            style: Theme.of(context).textTheme.headlineLarge,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Center(
+          child: Text(
+            'Welcome back. Please log in to continue.',
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+          ),
+        ),
+      ],
+    );
+  }
+}
 
+class _LoginForm extends StatelessWidget {
+  final GlobalKey<FormState> formKey;
+  final TextEditingController emailController;
+  final TextEditingController passwordController;
+  final bool obscurePassword;
+  final VoidCallback onTogglePassword;
 
-  
+  const _LoginForm({
+    required this.formKey,
+    required this.emailController,
+    required this.passwordController,
+    required this.obscurePassword,
+    required this.onTogglePassword,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Form(
+      key: formKey,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _FieldLabel(label: 'Email Address'),
+          const SizedBox(height: 6),
+          TextFormField(
+            controller: emailController,
+            keyboardType: TextInputType.emailAddress,
+            decoration: const InputDecoration(
+              hintText: 'student@alu.edu',
+              border: OutlineInputBorder(),
+            ),
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) return 'Email is required';
+              if (!value.contains('@')) return 'Enter a valid email';
+              return null;
+            },
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _FieldLabel(label: 'Password'),
+              Text(
+                'Forgot?',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          TextFormField(
+            controller: passwordController,
+            obscureText: obscurePassword,
+            decoration: InputDecoration(
+              hintText: '••••••••',
+              border: const OutlineInputBorder(),
+              suffixIcon: GestureDetector(
+                onTap: onTogglePassword,
+                child: Icon(
+                  obscurePassword
+                      ? Icons.visibility_outlined
+                      : Icons.visibility_off_outlined,
+                ),
+              ),
+            ),
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) return 'Password is required';
+              if (value.length < 6) return 'Minimum 6 characters';
+              return null;
+            },
+          ),
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () {
+                if (formKey.currentState!.validate()) {
+                  // auth logic comes Day 4
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Theme.of(context).colorScheme.primary,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              icon: const Icon(Icons.login_rounded, color: Colors.white),
+              label: Text(
+                'Log In',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FieldLabel extends StatelessWidget {
+  final String label;
+  const _FieldLabel({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      label,
+      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
+    );
+  }
+}
+
+class _Footer extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Text.rich(
+        TextSpan(
+          text: "Don't have an account?  ",
+          style: Theme.of(context).textTheme.bodyMedium,
+          children: [
+            WidgetSpan(
+              child: GestureDetector(
+                onTap: () {
+                  context.go('/');
+                },
+                child: Text('Create Account',
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.primary,
+                fontWeight: FontWeight.w600,
+              ),),
+              )
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
