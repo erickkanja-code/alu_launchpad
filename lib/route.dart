@@ -17,11 +17,11 @@ import 'package:alu_launchpad/screens/student/student_profile_screen.dart';
 final appRouter = GoRouter(
   routes: [
     GoRoute(
-      path: '/create-account',
+      path: '/',
       builder: (context, state) => CreateAccountScreen(),
     ),
     GoRoute(
-      path: '/',
+      path: '/login',
       builder: (context, state) => LoginScreen(),
     ),
     GoRoute(

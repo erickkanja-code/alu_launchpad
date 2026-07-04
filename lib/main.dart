@@ -19,25 +19,26 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Color(0xFF0052cc)),
         textTheme: TextTheme(
           headlineLarge: TextStyle(
-            fontFamily: 'Inter',
+            // fontFamily: 'Inter',
             fontSize: 24,
             fontWeight: FontWeight.bold,
-            height: 1.3,
+            height: 1.8,
+            letterSpacing: 1.0,
             ),
           titleMedium: TextStyle(
-            fontFamily: 'Inter',
+            // fontFamily: 'Inter',
             fontSize: 20,
             fontWeight: FontWeight.w600,
             height: 1.4,
           ),
           bodyMedium: TextStyle(
-            fontFamily: 'Inter',
+            // fontFamily: 'Inter',
             fontSize: 16,
             fontWeight: FontWeight.w400,
             height: 1.5,
           ),
           bodySmall: TextStyle(
-            fontFamily: 'Inter',
+            // fontFamily: 'Inter',
             fontSize: 12,
             fontWeight: FontWeight.w400,
             height: 1.4,
