@@ -187,6 +187,7 @@ class _EditProfileButton extends StatelessWidget {
       width: double.infinity,
       child: ElevatedButton.icon(
         onPressed: () {
+          context.push('/startup/edit-internship');
           // edit profile logic comes later
         },
         style: ElevatedButton.styleFrom(

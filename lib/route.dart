@@ -5,7 +5,7 @@ import 'package:alu_launchpad/screens/shared/internship_detail_screen.dart';
 import 'package:alu_launchpad/screens/startup/applicant_detail_screen.dart';
 import 'package:alu_launchpad/screens/startup/applicants_list_screen.dart';
 import 'package:alu_launchpad/screens/startup/dashboard_screen.dart';
-import 'package:alu_launchpad/screens/startup/edit_internship_screen.dart';
+import 'package:alu_launchpad/screens/startup/edit_startup_profile_screen.dart';
 import 'package:alu_launchpad/screens/startup/new_internship_screen.dart';
 import 'package:alu_launchpad/screens/startup/startup_profile_screen.dart';
 import 'package:alu_launchpad/screens/student/apply_form_screen.dart';
@@ -41,8 +41,8 @@ final appRouter = GoRouter(
       builder: (context, state) => DashboardScreen(),
     ),
     GoRoute(
-      path: '/startup/edit-internship/:opportunityId',
-      builder: (context, state) => EditInternshipScreen(opportunityId: state.pathParameters['opportunityId']!),
+      path: '/startup/edit-internship',
+      builder: (context, state) => EditStartupProfileScreen(),
     ),
     GoRoute(
       path: '/startup/new-internship',

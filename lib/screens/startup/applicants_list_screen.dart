@@ -273,10 +273,23 @@ class _BottomNav extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            _NavItem(icon: Icons.dashboard_outlined, isActive: false),
+            GestureDetector(
+            onTap: () {
+              context.push('/');
+            },
+            child: _NavItem(
+              icon: Icons.dashboard_outlined,
+              isActive: true,
+            ),),
             const SizedBox(width: 48),
-            _NavItem(icon: Icons.person_outline, isActive: false),
-          ],
+            GestureDetector(
+              onTap: () {
+                context.push('/startup/startup-profile');
+              },
+              child: _NavItem(
+              icon: Icons.person_outline,
+              isActive: false,
+            ),)          ],
         ),
       ),
     );
