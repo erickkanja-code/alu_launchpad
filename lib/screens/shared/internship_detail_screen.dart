@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+
 
 class InternshipDetailScreen extends StatelessWidget {
   final String opportunityId;
@@ -228,6 +230,7 @@ class _ApplicantsSection extends StatelessWidget {
             width: double.infinity,
             child: ElevatedButton.icon(
               onPressed: () {
+                context.push('/startup/applicants-list/:opportunityId');
                 // navigate to applicants list - Day 6
               },
               style: ElevatedButton.styleFrom(

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 class ApplicantsListScreen extends StatelessWidget {
   final String opportunityId;
@@ -38,7 +39,7 @@ class ApplicantsListScreen extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        leading: const Icon(Icons.arrow_back, color: Colors.black),
+        // leading: const Icon(Icons.arrow_back, color: Colors.black),
         title: Text(
           'ALU Launchpad',
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -66,7 +67,7 @@ class ApplicantsListScreen extends StatelessWidget {
                   color: Color(0xFFEEEEEE),
                 ),
                 itemBuilder: (context, index) {
-                  return _ApplicantTile(applicant: _applicants[index]);
+                  return GestureDetector(onTap: () {context.push('/startup/applicant-detail/:applicationId');},child: _ApplicantTile(applicant: _applicants[index]));
                 },
               ),
             ),
