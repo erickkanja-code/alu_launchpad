@@ -343,8 +343,9 @@ class _BottomNav extends StatelessWidget {
     return BottomAppBar(
       color: Colors.white,
       elevation: 4,
+      height: 60,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
@@ -389,14 +390,14 @@ class _NavItem extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, color: color, size: 24),
+        Icon(icon, color: color, size: 12),
         const SizedBox(height: 2),
         Text(
           label,
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: color,
                 fontWeight:
-                    isActive ? FontWeight.w600 : FontWeight.w400,
+                    isActive ? FontWeight.w500 : FontWeight.w300,
               ),
         ),
       ],
