@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 class NewInternshipScreen extends StatefulWidget {
   const NewInternshipScreen({super.key});
@@ -46,7 +47,7 @@ class _NewInternshipScreenState extends State<NewInternshipScreen> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        leading: const Icon(Icons.arrow_back, color: Colors.black),
+        leading: GestureDetector( onTap:() => context.push('/'),child: Icon(Icons.arrow_back, color: Colors.black),),
         title: Text(
           'ALU Launchpad',
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -88,7 +89,7 @@ class _NewInternshipScreenState extends State<NewInternshipScreen> {
                     _FieldLabel(label: 'Category / Role Type'),
                     const SizedBox(height: 6),
                     DropdownButtonFormField<String>(
-                      value: _selectedCategory,
+                      initialValue: _selectedCategory,
                       hint: const Text('Select category'),
                       decoration: const InputDecoration(
                         border: OutlineInputBorder(),
@@ -145,7 +146,7 @@ class _NewInternshipScreenState extends State<NewInternshipScreen> {
                               onChanged: (value) {
                                 setState(() => _isRemote = value);
                               },
-                              activeColor:
+                              activeThumbColor:
                                   Theme.of(context).colorScheme.primary,
                             ),
                           ],
