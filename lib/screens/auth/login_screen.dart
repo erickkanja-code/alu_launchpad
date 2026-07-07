@@ -174,6 +174,7 @@ class _LoginForm extends StatelessWidget {
             child: ElevatedButton.icon(
               onPressed: () {
                 if (formKey.currentState!.validate()) {
+                  context.go('/startup/dashboard');
                   // auth logic comes Day 4
                 }
               },
@@ -228,7 +229,7 @@ class _Footer extends StatelessWidget {
             WidgetSpan(
               child: GestureDetector(
                 onTap: () {
-                  context.go('/');
+                  context.go('/create-account');
                 },
                 child: Text('Create Account',
               style: TextStyle(

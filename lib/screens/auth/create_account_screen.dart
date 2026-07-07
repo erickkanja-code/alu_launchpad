@@ -267,7 +267,7 @@ class _AccountForm extends StatelessWidget {
             child: ElevatedButton(
               onPressed: () {
                 if (formKey.currentState!.validate()) {
-                  context.go('/');
+                  context.go('/startup/dashboard');
                   // auth logic comes Day 4
                 }
               },
