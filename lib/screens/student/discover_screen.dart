@@ -364,11 +364,11 @@ class _BottomNav extends StatelessWidget {
               label: 'Applications',
               isActive: false,
             ),),
-            _NavItem(
+            GestureDetector(onTap: () {context.push('/student/studentprofile');},child: _NavItem(
               icon: Icons.person_outline,
               label: 'Profile',
               isActive: false,
-            ),
+            ),),
           ],
         ),
       ),
