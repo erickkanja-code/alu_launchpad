@@ -244,7 +244,7 @@ class _BottomNav extends StatelessWidget {
       elevation: 4,
       height: 60,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
@@ -258,11 +258,11 @@ class _BottomNav extends StatelessWidget {
               label: 'Applications',
               isActive: true,
             ),
-            _NavItem(
+            GestureDetector(onTap: () {context.push('/student/studentprofile');},child: _NavItem(
               icon: Icons.person_outline,
               label: 'Profile',
               isActive: false,
-            ),
+            ),),
           ],
         ),
       ),
@@ -289,7 +289,7 @@ class _NavItem extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, color: color, size: 24),
+        Icon(icon, color: color, size: 12),
         const SizedBox(height: 2),
         Text(
           label,

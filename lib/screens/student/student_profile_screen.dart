@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 class StudentProfileScreen extends StatelessWidget {
   const StudentProfileScreen({super.key});
@@ -214,20 +215,22 @@ class _BottomNav extends StatelessWidget {
       elevation: 4,
       height: 60,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            _NavItem(
+            GestureDetector(onTap: () {context.push('/');},child: _NavItem(
               icon: Icons.explore_outlined,
               label: 'Discover',
               isActive: false,
-            ),
-            _NavItem(
+            ),),
+            GestureDetector(
+              onTap: () {context.push('/student/applications');},
+              child: _NavItem(
               icon: Icons.check_box_outlined,
               label: 'Applications',
               isActive: false,
-            ),
+            ),),
             _NavItem(
               icon: Icons.person,
               label: 'Profile',
@@ -259,14 +262,14 @@ class _NavItem extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, color: color, size: 24),
+        Icon(icon, color: color, size: 12),
         const SizedBox(height: 2),
         Text(
           label,
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: color,
                 fontWeight:
-                    isActive ? FontWeight.w600 : FontWeight.w400,
+                    isActive ? FontWeight.w600 : FontWeight.w500,
               ),
         ),
       ],
