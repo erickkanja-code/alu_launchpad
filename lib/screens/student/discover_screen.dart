@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 class DiscoverScreen extends StatefulWidget {
   const DiscoverScreen({super.key});
@@ -130,7 +131,9 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                     itemCount: _filtered.length,
                     separatorBuilder: (_, __) => const SizedBox(height: 12),
                     itemBuilder: (context, index) {
-                      return _InternshipCard(internship: _filtered[index]);
+                      return GestureDetector(
+                      onTap: () {context.push('/internshipdetail/:opportunityId');},
+                      child: _InternshipCard(internship: _filtered[index]));
                     },
                   ),
           ),
@@ -354,11 +357,13 @@ class _BottomNav extends StatelessWidget {
               label: 'Discover',
               isActive: true,
             ),
-            _NavItem(
+            GestureDetector(
+              onTap: () {context.push('/student/applications');},
+              child: _NavItem(
               icon: Icons.check_box_outlined,
               label: 'Applications',
               isActive: false,
-            ),
+            ),),
             _NavItem(
               icon: Icons.person_outline,
               label: 'Profile',
