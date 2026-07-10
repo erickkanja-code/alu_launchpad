@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:alu_launchpad/route.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
+import 'providers/auth_provider.dart';
+import 'providers/opportunity_provider.dart';
+import 'providers/application_provider.dart';
 
 void main() {
   runApp(const MyApp());
@@ -12,7 +16,13 @@ class MyApp extends StatelessWidget {
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    return MaterialApp.router(
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => OpportunityProvider()),
+        ChangeNotifierProvider(create: (_) => ApplicationProvider()),
+      ],
+      child: MaterialApp.router(
       title: 'ALU Launchpad',
       theme: ThemeData(
         useMaterial3: true,
@@ -46,7 +56,7 @@ class MyApp extends StatelessWidget {
         )
       ),
       routerConfig: appRouter,
-    );
+    ),);
   }
 }
 
