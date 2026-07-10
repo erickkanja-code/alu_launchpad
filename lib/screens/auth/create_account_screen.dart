@@ -321,7 +321,7 @@ class _Footer extends StatelessWidget {
             WidgetSpan(
               child: GestureDetector(
                 onTap: () {
-                  context.push('/login');
+                  context.push('/');
                 },
                 child: Text('Log In',
               style: TextStyle(

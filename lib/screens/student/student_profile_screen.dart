@@ -219,7 +219,7 @@ class _BottomNav extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            GestureDetector(onTap: () {context.push('/');},child: _NavItem(
+            GestureDetector(onTap: () {context.push('/student/discover');},child: _NavItem(
               icon: Icons.explore_outlined,
               label: 'Discover',
               isActive: false,

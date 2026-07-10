@@ -21,7 +21,7 @@ final appRouter = GoRouter(
       builder: (context, state) => CreateAccountScreen(),
     ),
     GoRoute(
-      path: '/login',
+      path: '/',
       builder: (context, state) => LoginScreen(),
     ),
     GoRoute(
@@ -57,7 +57,7 @@ final appRouter = GoRouter(
       builder: (context, state) => ApplyFormScreen(opportunityId: state.pathParameters['opportunityId']!,),
     ),
     GoRoute(
-      path: '/',
+      path: '/student/discover',
       builder: (context, state) => DiscoverScreen(),
     ),
     GoRoute(
