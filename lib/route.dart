@@ -1,73 +1,98 @@
+import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:alu_launchpad/screens/auth/create_account_screen.dart';
-import 'package:alu_launchpad/screens/auth/login_screen.dart';
-import 'package:alu_launchpad/screens/shared/internship_detail_screen.dart';
-import 'package:alu_launchpad/screens/startup/applicant_detail_screen.dart';
-import 'package:alu_launchpad/screens/startup/applicants_list_screen.dart';
-import 'package:alu_launchpad/screens/startup/dashboard_screen.dart';
-import 'package:alu_launchpad/screens/startup/edit_startup_profile_screen.dart';
-import 'package:alu_launchpad/screens/startup/new_internship_screen.dart';
-import 'package:alu_launchpad/screens/startup/startup_profile_screen.dart';
-import 'package:alu_launchpad/screens/student/apply_form_screen.dart';
-import 'package:alu_launchpad/screens/student/discover_screen.dart';
-import 'package:alu_launchpad/screens/student/my_applications_screen.dart';
-import 'package:alu_launchpad/screens/student/student_profile_screen.dart';
+import 'package:provider/provider.dart';
+import 'providers/auth_provider.dart';
+import 'screens/auth/create_account_screen.dart';
+import 'screens/auth/login_screen.dart';
+import 'screens/shared/internship_detail_screen.dart';
+import 'screens/startup/applicant_detail_screen.dart';
+import 'screens/startup/applicants_list_screen.dart';
+import 'screens/startup/dashboard_screen.dart';
+import 'screens/startup/edit_startup_profile_screen.dart';
+import 'screens/startup/new_internship_screen.dart';
+import 'screens/startup/startup_profile_screen.dart';
+import 'screens/student/apply_form_screen.dart';
+import 'screens/student/discover_screen.dart';
+import 'screens/student/my_applications_screen.dart';
+import 'screens/student/student_profile_screen.dart';
 
+final GoRouter appRouter = GoRouter(
+  initialLocation: '/login',
+  redirect: (context, state) {
+    final auth = context.read<AuthProvider>();
+    final isLoggedIn = auth.isLoggedIn;
+    final path = state.uri.path;
+    final isAuthRoute =
+        path == '/login' || path == '/create-account';
 
-final appRouter = GoRouter(
+    if (!isLoggedIn && !isAuthRoute) return '/login';
+    if (isLoggedIn && isAuthRoute) {
+      return auth.role == 'startup'
+          ? '/startup/dashboard'
+          : '/student/discover';
+    }
+    return null;
+  },
   routes: [
     GoRoute(
+      path: '/login',
+      builder: (context, state) => const LoginScreen(),
+    ),
+    GoRoute(
       path: '/create-account',
-      builder: (context, state) => CreateAccountScreen(),
-    ),
-    GoRoute(
-      path: '/',
-      builder: (context, state) => LoginScreen(),
-    ),
-    GoRoute(
-      path: '/internshipdetail/:opportunityId',
-      builder: (context, state) => InternshipDetailScreen(opportunityId: state.pathParameters['opportunityId']!),
-    ),
-    GoRoute(
-      path: '/startup/applicant-detail/:applicationId',
-      builder: (context, state) => ApplicantDetailScreen(applicationId: state.pathParameters['applicationId']!),
-    ),
-    GoRoute(
-      path: '/startup/applicants-list/:opportunityId',
-      builder: (context, state) => ApplicantsListScreen(opportunityId: state.pathParameters['opportunityId']!),
+      builder: (context, state) => const CreateAccountScreen(),
     ),
     GoRoute(
       path: '/startup/dashboard',
-      builder: (context, state) => DashboardScreen(),
+      builder: (context, state) => const DashboardScreen(),
     ),
     GoRoute(
-      path: '/startup/edit-internship',
-      builder: (context, state) => EditStartupProfileScreen(),
+      path: '/startup/profile',
+      builder: (context, state) => const StartupProfileScreen(),
+    ),
+    GoRoute(
+      path: '/startup/edit-profile',
+      builder: (context, state) => const EditStartupProfileScreen(),
     ),
     GoRoute(
       path: '/startup/new-internship',
-      builder: (context, state) => NewInternshipScreen(),
+      builder: (context, state) => const NewInternshipScreen(),
     ),
     GoRoute(
-      path: '/startup/startup-profile',
-      builder: (context, state) => StartupProfileScreen(),
+      path: '/startup/applicants/:opportunityId',
+      builder: (context, state) => ApplicantsListScreen(
+        opportunityId: state.pathParameters['opportunityId']!,
+      ),
     ),
     GoRoute(
-      path: '/student/apply-form/:opportunityId',
-      builder: (context, state) => ApplyFormScreen(opportunityId: state.pathParameters['opportunityId']!,),
+      path: '/startup/applicant-detail/:applicationId',
+      builder: (context, state) => ApplicantDetailScreen(
+        applicationId: state.pathParameters['applicationId']!,
+      ),
+    ),
+    GoRoute(
+      path: '/internship-detail/:id',
+      builder: (context, state) => InternshipDetailScreen(
+        opportunityId: state.pathParameters['id']!,
+      ),
     ),
     GoRoute(
       path: '/student/discover',
-      builder: (context, state) => DiscoverScreen(),
+      builder: (context, state) => const DiscoverScreen(),
+    ),
+    GoRoute(
+      path: '/student/profile',
+      builder: (context, state) => const StudentProfileScreen(),
     ),
     GoRoute(
       path: '/student/applications',
-      builder: (context, state) => MyApplicationsScreen(),
+      builder: (context, state) => const MyApplicationsScreen(),
     ),
     GoRoute(
-      path: '/student/studentprofile',
-      builder: (context, state) => StudentProfileScreen(),
+      path: '/student/apply/:opportunityId',
+      builder: (context, state) => ApplyFormScreen(
+        opportunityId: state.pathParameters['opportunityId']!,
+      ),
     ),
-
   ],
 );
