@@ -5,8 +5,14 @@ import 'package:provider/provider.dart';
 import 'providers/auth_provider.dart';
 import 'providers/opportunity_provider.dart';
 import 'providers/application_provider.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   runApp(const MyApp());
 }
 
