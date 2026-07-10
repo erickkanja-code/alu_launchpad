@@ -13,18 +13,21 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  runApp(const MyApp());
-}
+  final authProvider = AuthProvider();
+  await authProvider.initialize();
+
+  runApp(MyApp(authProvider: authProvider));}
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final AuthProvider authProvider;
+  const MyApp({super.key, required this.authProvider});
 
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider.value(value: authProvider),
         ChangeNotifierProvider(create: (_) => OpportunityProvider()),
         ChangeNotifierProvider(create: (_) => ApplicationProvider()),
       ],
