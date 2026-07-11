@@ -1,11 +1,16 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import '../models/opportunity_model.dart';
+import '../services/opportunity_service.dart';
 
 class OpportunityProvider extends ChangeNotifier {
+  final OpportunityService _service = OpportunityService();
+
   List<OpportunityModel> _opportunities = [];
   bool _isLoading = false;
   String _searchQuery = '';
   String _selectedCategory = 'All';
+  StreamSubscription<List<OpportunityModel>>? _subscription;
 
   List<OpportunityModel> get opportunities => _opportunities;
   bool get isLoading => _isLoading;
@@ -23,6 +28,33 @@ class OpportunityProvider extends ChangeNotifier {
     }).toList();
   }
 
+  // called after student logs in
+  void listenToOpportunities() {
+    _isLoading = true;
+    notifyListeners();
+
+    _subscription?.cancel();
+    _subscription = _service.getOpportunitiesStream().listen((list) {
+      _opportunities = list;
+      _isLoading = false;
+      notifyListeners();
+    });
+  }
+
+  // called after startup logs in
+  void listenToStartupOpportunities(String startupId) {
+    _isLoading = true;
+    notifyListeners();
+
+    _subscription?.cancel();
+    _subscription =
+        _service.getStartupOpportunitiesStream(startupId).listen((list) {
+      _opportunities = list;
+      _isLoading = false;
+      notifyListeners();
+    });
+  }
+
   void setSearchQuery(String query) {
     _searchQuery = query;
     notifyListeners();
@@ -33,59 +65,15 @@ class OpportunityProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void setOpportunities(List<OpportunityModel> list) {
-    _opportunities = list;
-    notifyListeners();
-  }
-
   void setLoading(bool value) {
     _isLoading = value;
     notifyListeners();
   }
 
-  // temporary — loads fake data until Firebase is connected on Day 5
-  void loadFakeData() {
-    _opportunities = [
-      OpportunityModel(
-        id: '1',
-        title: 'Frontend Developer Intern',
-        description: 'Build mobile apps for our startup',
-        category: 'Software Engineering',
-        location: 'Kigali, Rwanda',
-        duration: '3 Months',
-        requirements: 'Basic Flutter knowledge',
-        startupId: 'startup1',
-        startupName: 'TechNova Solutions',
-        status: 'open',
-        createdAt: DateTime.now(),
-      ),
-      OpportunityModel(
-        id: '2',
-        title: 'Data Analyst Intern',
-        description: 'Analyse business data and produce insights',
-        category: 'Data Science',
-        location: 'Remote',
-        duration: '6 Months',
-        requirements: 'Python, SQL knowledge',
-        startupId: 'startup2',
-        startupName: 'Kigali Analytics Group',
-        status: 'open',
-        createdAt: DateTime.now(),
-      ),
-      OpportunityModel(
-        id: '3',
-        title: 'Growth Marketing Intern',
-        description: 'Drive social media and content strategy',
-        category: 'Marketing',
-        location: 'Hybrid - Kigali',
-        duration: '3 Months',
-        requirements: 'Social media experience',
-        startupId: 'startup3',
-        startupName: 'EcoSoko',
-        status: 'open',
-        createdAt: DateTime.now(),
-      ),
-    ];
-    notifyListeners();
+  // cancel stream when provider is destroyed
+  @override
+  void dispose() {
+    _subscription?.cancel();
+    super.dispose();
   }
 }

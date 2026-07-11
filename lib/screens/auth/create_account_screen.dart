@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+import '../../providers/auth_provider.dart';
 
 class CreateAccountScreen extends StatefulWidget {
   const CreateAccountScreen({super.key});
@@ -50,7 +52,9 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                 emailController: _emailController,
                 passwordController: _passwordController,
                 obscurePassword: _obscurePassword,
-                onTogglePassword: () => setState(() => _obscurePassword = !_obscurePassword),
+                isStudent: _isStudent,
+                onTogglePassword: () =>
+                    setState(() => _obscurePassword = !_obscurePassword),
               ),
               const SizedBox(height: 24),
               _Footer(),
@@ -189,6 +193,7 @@ class _AccountForm extends StatelessWidget {
   final TextEditingController emailController;
   final TextEditingController passwordController;
   final bool obscurePassword;
+  final bool isStudent;
   final VoidCallback onTogglePassword;
 
   const _AccountForm({
@@ -197,11 +202,40 @@ class _AccountForm extends StatelessWidget {
     required this.emailController,
     required this.passwordController,
     required this.obscurePassword,
+    required this.isStudent,
     required this.onTogglePassword,
   });
 
+  Future<void> _handleSignUp(BuildContext context) async {
+    if (!formKey.currentState!.validate()) return;
+
+    final auth = context.read<AuthProvider>();
+    final success = await auth.signUp(
+      email: emailController.text.trim(),
+      password: passwordController.text.trim(),
+      role: isStudent ? 'student' : 'startup',
+    );
+
+    if (!context.mounted) return;
+
+    if (success) {
+      final role = auth.role;
+      if (role == 'startup') {
+        context.go('/startup/dashboard');
+      } else {
+        context.go('/student/discover');
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(auth.errorMessage ?? 'Sign up failed')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final auth = context.watch<AuthProvider>();
+
     return Form(
       key: formKey,
       child: Column(
@@ -250,7 +284,9 @@ class _AccountForm extends StatelessWidget {
               suffixIcon: GestureDetector(
                 onTap: onTogglePassword,
                 child: Icon(
-                  obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                  obscurePassword
+                      ? Icons.visibility_outlined
+                      : Icons.visibility_off_outlined,
                 ),
               ),
               border: const OutlineInputBorder(),
@@ -265,12 +301,7 @@ class _AccountForm extends StatelessWidget {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: () {
-                if (formKey.currentState!.validate()) {
-                  context.go('/startup/dashboard');
-                  // auth logic comes Day 4
-                }
-              },
+              onPressed: auth.isLoading ? null : () => _handleSignUp(context),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Theme.of(context).colorScheme.primary,
                 foregroundColor: Colors.white,
@@ -279,15 +310,34 @@ class _AccountForm extends StatelessWidget {
                   borderRadius: BorderRadius.circular(8),
                 ),
               ),
-              child: Text(
-                'Create Account',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
+              child: auth.isLoading
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
+                      ),
+                    )
+                  : Text(
+                      'Create Account',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                          ),
                     ),
-              ),
             ),
           ),
+          if (auth.errorMessage != null) ...[
+            const SizedBox(height: 12),
+            Text(
+              auth.errorMessage!,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.error,
+                fontSize: 13,
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -320,15 +370,14 @@ class _Footer extends StatelessWidget {
           children: [
             WidgetSpan(
               child: GestureDetector(
-                onTap: () {
-                  context.push('/');
-                },
-                child: Text('Log In',
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.primary,
-                fontWeight: FontWeight.w600,
-              ),
-              ),
+                onTap: () => context.go('/login'),
+                child: Text(
+                  'Log In',
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
             ),
           ],

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+import '../../providers/auth_provider.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -110,8 +112,35 @@ class _LoginForm extends StatelessWidget {
     required this.onTogglePassword,
   });
 
+  Future<void> _handleLogin(BuildContext context) async {
+    if (!formKey.currentState!.validate()) return;
+
+    final auth = context.read<AuthProvider>();
+    final success = await auth.signIn(
+      email: emailController.text.trim(),
+      password: passwordController.text.trim(),
+    );
+
+    if (!context.mounted) return;
+
+    if (success) {
+      final role = auth.role;
+      if (role == 'startup') {
+        context.go('/startup/dashboard');
+      } else {
+        context.go('/student/discover');
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(auth.errorMessage ?? 'Login failed')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final auth = context.watch<AuthProvider>();
+
     return Form(
       key: formKey,
       child: Column(
@@ -172,12 +201,7 @@ class _LoginForm extends StatelessWidget {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
-              onPressed: () {
-                if (formKey.currentState!.validate()) {
-                  context.go('/startup/dashboard');
-                  // auth logic comes Day 4
-                }
-              },
+              onPressed: auth.isLoading ? null : () => _handleLogin(context),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Theme.of(context).colorScheme.primary,
                 foregroundColor: Colors.white,
@@ -186,9 +210,18 @@ class _LoginForm extends StatelessWidget {
                   borderRadius: BorderRadius.circular(8),
                 ),
               ),
-              icon: const Icon(Icons.login_rounded, color: Colors.white),
+              icon: auth.isLoading
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
+                      ),
+                    )
+                  : const Icon(Icons.login_rounded, color: Colors.white),
               label: Text(
-                'Log In',
+                auth.isLoading ? 'Logging in...' : 'Log In',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: Colors.white,
                       fontWeight: FontWeight.w600,
@@ -196,6 +229,16 @@ class _LoginForm extends StatelessWidget {
               ),
             ),
           ),
+          if (auth.errorMessage != null) ...[
+            const SizedBox(height: 12),
+            Text(
+              auth.errorMessage!,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.error,
+                fontSize: 13,
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -228,15 +271,15 @@ class _Footer extends StatelessWidget {
           children: [
             WidgetSpan(
               child: GestureDetector(
-                onTap: () {
-                  context.go('/create-account');
-                },
-                child: Text('Create Account',
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.primary,
-                fontWeight: FontWeight.w600,
-              ),),
-              )
+                onTap: () => context.go('/create-account'),
+                child: Text(
+                  'Create Account',
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
             ),
           ],
         ),
