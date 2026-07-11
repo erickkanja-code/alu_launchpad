@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/opportunity_provider.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -112,30 +113,34 @@ class _LoginForm extends StatelessWidget {
     required this.onTogglePassword,
   });
 
-  Future<void> _handleLogin(BuildContext context) async {
-    if (!formKey.currentState!.validate()) return;
+Future<void> _handleLogin(BuildContext context) async {
+  if (!formKey.currentState!.validate()) return;
 
-    final auth = context.read<AuthProvider>();
-    final success = await auth.signIn(
-      email: emailController.text.trim(),
-      password: passwordController.text.trim(),
-    );
+  final auth = context.read<AuthProvider>();
+  final success = await auth.signIn(
+    email: emailController.text.trim(),
+    password: passwordController.text.trim(),
+  );
 
-    if (!context.mounted) return;
+  if (!context.mounted) return;
 
-    if (success) {
-      final role = auth.role;
-      if (role == 'startup') {
-        context.go('/startup/dashboard');
-      } else {
-        context.go('/student/discover');
-      }
+  if (success) {
+    final uid = auth.currentUser!.uid;
+    final role = auth.role;
+
+    if (role == 'startup') {
+      context.read<OpportunityProvider>().listenToStartupOpportunities(uid);
+      context.go('/startup/dashboard');
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(auth.errorMessage ?? 'Login failed')),
-      );
+      context.read<OpportunityProvider>().listenToOpportunities();
+      context.go('/student/discover');
     }
+  } else {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(auth.errorMessage ?? 'Login failed')),
+    );
   }
+}
 
   @override
   Widget build(BuildContext context) {
