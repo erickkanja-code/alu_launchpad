@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/opportunity_provider.dart';
 
 class CreateAccountScreen extends StatefulWidget {
   const CreateAccountScreen({super.key});
@@ -206,31 +207,35 @@ class _AccountForm extends StatelessWidget {
     required this.onTogglePassword,
   });
 
-  Future<void> _handleSignUp(BuildContext context) async {
-    if (!formKey.currentState!.validate()) return;
+Future<void> _handleSignUp(BuildContext context) async {
+  if (!formKey.currentState!.validate()) return;
 
-    final auth = context.read<AuthProvider>();
-    final success = await auth.signUp(
-      email: emailController.text.trim(),
-      password: passwordController.text.trim(),
-      role: isStudent ? 'student' : 'startup',
-    );
+  final auth = context.read<AuthProvider>();
+  final success = await auth.signUp(
+    email: emailController.text.trim(),
+    password: passwordController.text.trim(),
+    role: isStudent ? 'student' : 'startup',
+  );
 
-    if (!context.mounted) return;
+  if (!context.mounted) return;
 
-    if (success) {
-      final role = auth.role;
-      if (role == 'startup') {
-        context.go('/startup/dashboard');
-      } else {
-        context.go('/student/discover');
-      }
+  if (success) {
+    final uid = auth.currentUser!.uid;
+    final role = auth.role;
+
+    if (role == 'startup') {
+      context.read<OpportunityProvider>().listenToStartupOpportunities(uid);
+      context.go('/startup/dashboard');
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(auth.errorMessage ?? 'Sign up failed')),
-      );
+      context.read<OpportunityProvider>().listenToOpportunities();
+      context.go('/student/discover');
     }
+  } else {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(auth.errorMessage ?? 'Sign up failed')),
+    );
   }
+}
 
   @override
   Widget build(BuildContext context) {
