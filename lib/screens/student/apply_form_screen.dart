@@ -1,4 +1,11 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+import '../../models/application_model.dart';
+import '../../providers/auth_provider.dart';
+import '../../services/application_service.dart';
+import '../../services/opportunity_service.dart';
 
 class ApplyFormScreen extends StatefulWidget {
   final String opportunityId;
@@ -13,6 +20,7 @@ class _ApplyFormScreenState extends State<ApplyFormScreen> {
   final _motivationController = TextEditingController();
   final _roleInfoController = TextEditingController();
   final _linkController = TextEditingController();
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -22,6 +30,77 @@ class _ApplyFormScreenState extends State<ApplyFormScreen> {
     super.dispose();
   }
 
+  Future<void> _handleSubmit() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      final auth = context.read<AuthProvider>();
+      final uid = auth.currentUser!.uid;
+
+      // fetch student name
+      final studentDoc = await FirebaseFirestore.instance
+          .collection('students')
+          .doc(uid)
+          .get();
+      final studentName =
+          studentDoc.data()?['name'] ?? 'Unknown Student';
+
+      // fetch opportunity info
+      final opp = await OpportunityService()
+          .getOpportunity(widget.opportunityId);
+      if (opp == null) {
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Opportunity not found'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      final application = ApplicationModel(
+        id: '',
+        opportunityId: opp.id,
+        opportunityTitle: opp.title,
+        startupId: opp.startupId,
+        startupName: opp.startupName,
+        studentId: uid,
+        studentName: studentName,
+        motivation: _motivationController.text.trim(),
+        roleInfo: _roleInfoController.text.trim(),
+        portfolioLink: _linkController.text.trim(),
+        availability: opp.duration,
+        locationPref: opp.location,
+        status: 'pending',
+        createdAt: DateTime.now(),
+      );
+
+      await ApplicationService().submitApplication(application);
+
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Application submitted successfully!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+      context.pop();
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to submit: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -29,7 +108,6 @@ class _ApplyFormScreenState extends State<ApplyFormScreen> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        // leading: const Icon(Icons.arrow_back, color: Colors.black),
         title: Text(
           'ALU Launchpad',
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -40,7 +118,8 @@ class _ApplyFormScreenState extends State<ApplyFormScreen> {
         centerTitle: true,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        padding:
+            const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         child: Form(
           key: _formKey,
           child: Column(
@@ -48,7 +127,8 @@ class _ApplyFormScreenState extends State<ApplyFormScreen> {
             children: [
               _ScreenHeader(),
               const SizedBox(height: 24),
-              _FieldLabel(label: 'Motivation / Why are you interested?'),
+              _FieldLabel(
+                  label: 'Motivation / Why are you interested?'),
               const SizedBox(height: 6),
               TextFormField(
                 controller: _motivationController,
@@ -72,7 +152,8 @@ class _ApplyFormScreenState extends State<ApplyFormScreen> {
                 controller: _roleInfoController,
                 maxLines: 5,
                 decoration: const InputDecoration(
-                  hintText: 'Describe your relevant skills and experience...',
+                  hintText:
+                      'Describe your relevant skills and experience...',
                   border: OutlineInputBorder(),
                   alignLabelWithHint: true,
                 ),
@@ -84,13 +165,15 @@ class _ApplyFormScreenState extends State<ApplyFormScreen> {
                 },
               ),
               const SizedBox(height: 20),
-              _FieldLabel(label: 'Resume / Portfolio / Project Link'),
+              _FieldLabel(
+                  label: 'Resume / Portfolio / Project Link'),
               const SizedBox(height: 6),
               TextFormField(
                 controller: _linkController,
                 keyboardType: TextInputType.url,
                 decoration: const InputDecoration(
-                  hintText: 'e.g. linkedin.com/in/jane or github.com/jane',
+                  hintText:
+                      'e.g. linkedin.com/in/jane or github.com/jane',
                   border: OutlineInputBorder(),
                 ),
                 validator: (value) {
@@ -104,26 +187,35 @@ class _ApplyFormScreenState extends State<ApplyFormScreen> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () {
-                    if (_formKey.currentState!.validate()) {
-                      // submit logic - Day 7
-                    }
-                  },
+                  onPressed: _isLoading ? null : _handleSubmit,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Theme.of(context).colorScheme.primary,
+                    backgroundColor:
+                        Theme.of(context).colorScheme.primary,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
-                  child: Text(
-                    'Submit Application',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
+                  child: _isLoading
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : Text(
+                          'Submit Application',
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodyMedium
+                              ?.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                              ),
                         ),
-                  ),
                 ),
               ),
               const SizedBox(height: 24),
