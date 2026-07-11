@@ -234,7 +234,7 @@ class _PostedInternshipsSection extends StatelessWidget {
           children: _internships
               .map((internship) => Padding(
                     padding: const EdgeInsets.only(bottom: 12),
-                    child: GestureDetector(onTap: () {context.push('/internshipdetail/:opportunityId');},child: _InternshipCard(internship: internship),),
+                    child: GestureDetector(onTap: () {context.push('/internship-detail/:opportunityId');},child: _InternshipCard(internship: internship),),
                   ))
               .toList(),
         ),
@@ -383,7 +383,7 @@ class _BottomNav extends StatelessWidget {
             const SizedBox(width: 8), // space for FAB
             GestureDetector(
               onTap: () {
-                context.push('/startup/startup-profile');
+                context.push('/startup/profile');
               },
               child: _NavItem(
               icon: Icons.person_outline,
