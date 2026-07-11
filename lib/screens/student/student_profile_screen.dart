@@ -1,26 +1,22 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+import '../../providers/auth_provider.dart';
 
 class StudentProfileScreen extends StatelessWidget {
   const StudentProfileScreen({super.key});
 
-  final List<String> _skills = const [
-    'React.js',
-    'Tailwind CSS',
-    'UI/UX Design',
-    'Node.js',
-    'Product Strategy',
-    'Agile Methodologies',
-  ];
-
   @override
   Widget build(BuildContext context) {
+    final uid = context.read<AuthProvider>().currentUser!.uid;
+
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        leading: const Icon(Icons.arrow_back, color: Colors.black),
+        automaticallyImplyLeading: false,
         title: Text(
           'ALU Launchpad',
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -31,30 +27,65 @@ class StudentProfileScreen extends StatelessWidget {
         centerTitle: true,
       ),
       bottomNavigationBar: _BottomNav(),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            _ProfileHeader(),
-            const SizedBox(height: 16),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Column(
-                children: [
-                  _BioCard(),
-                  const SizedBox(height: 12),
-                  _SkillsCard(skills: _skills),
-                  const SizedBox(height: 24),
-                ],
-              ),
+      body: StreamBuilder<DocumentSnapshot>(
+        stream: FirebaseFirestore.instance
+            .collection('students')
+            .doc(uid)
+            .snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          final data =
+              snapshot.data?.data() as Map<String, dynamic>?;
+          final name = data?['name'] ?? 'Your Name';
+          final year = data?['year'] ?? '';
+          final skills = data?['skills'] ?? '';
+          final bio = data?['bio'] ?? '';
+
+          final skillsList = skills
+              .toString()
+              .split(',')
+              .map((s) => s.trim())
+              .where((s) => s.isNotEmpty)
+              .toList();
+
+          return SingleChildScrollView(
+            child: Column(
+              children: [
+                _ProfileHeader(name: name, year: year),
+                const SizedBox(height: 16),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Column(
+                    children: [
+                      if (bio.isNotEmpty) _BioCard(bio: bio),
+                      if (bio.isNotEmpty) const SizedBox(height: 12),
+                      if (skillsList.isNotEmpty)
+                        _SkillsCard(skills: skillsList),
+                      if (skillsList.isNotEmpty)
+                        const SizedBox(height: 12),
+                      _LogoutButton(),
+                      const SizedBox(height: 24),
+                    ],
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
 }
 
 class _ProfileHeader extends StatelessWidget {
+  final String name;
+  final String year;
+
+  const _ProfileHeader({required this.name, required this.year});
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -68,7 +99,7 @@ class _ProfileHeader extends StatelessWidget {
             backgroundColor:
                 Theme.of(context).colorScheme.primary.withOpacity(0.15),
             child: Text(
-              'A',
+              name.isNotEmpty ? name[0].toUpperCase() : '?',
               style: Theme.of(context).textTheme.headlineLarge?.copyWith(
                     color: Theme.of(context).colorScheme.primary,
                     fontWeight: FontWeight.bold,
@@ -77,28 +108,31 @@ class _ProfileHeader extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            'Alex Johnson',
+            name,
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
           ),
-          const SizedBox(height: 4),
-          Text(
-            'Year 3 • Computer Science',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Colors.grey,
-                ),
-          ),
+          if (year.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(
+              year,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Colors.grey,
+                  ),
+            ),
+          ],
           const SizedBox(height: 16),
           ElevatedButton(
             onPressed: () {
-              // navigate to edit profile - later
+              // edit student profile — future improvement
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.primary,
+              backgroundColor:
+                  Theme.of(context).colorScheme.primary,
               foregroundColor: Colors.white,
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 32, vertical: 10),
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 32, vertical: 10),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
               ),
@@ -118,6 +152,9 @@ class _ProfileHeader extends StatelessWidget {
 }
 
 class _BioCard extends StatelessWidget {
+  final String bio;
+  const _BioCard({required this.bio});
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -139,7 +176,7 @@ class _BioCard extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           Text(
-            'Passionate about building scalable web applications and exploring the intersection of design and engineering. Currently looking for summer internship opportunities to apply my skills in real-world startup environments. I thrive in collaborative teams and love tackling complex user experience challenges.',
+            bio,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: Colors.grey.shade700,
                   height: 1.6,
@@ -153,7 +190,6 @@ class _BioCard extends StatelessWidget {
 
 class _SkillsCard extends StatelessWidget {
   final List<String> skills;
-
   const _SkillsCard({required this.skills});
 
   @override
@@ -187,21 +223,56 @@ class _SkillsCard extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: Colors.grey.shade100,
                       borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: Colors.grey.shade300),
+                      border:
+                          Border.all(color: Colors.grey.shade300),
                     ),
                     child: Text(
                       skill,
-                      style:
-                          Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: Colors.grey.shade700,
-                                fontWeight: FontWeight.w500,
-                              ),
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodySmall
+                          ?.copyWith(
+                            color: Colors.grey.shade700,
+                            fontWeight: FontWeight.w500,
+                          ),
                     ),
                   ),
                 )
                 .toList(),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _LogoutButton extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        onPressed: () async {
+          await context.read<AuthProvider>().signOut();
+          if (!context.mounted) return;
+          context.go('/login');
+        },
+        style: OutlinedButton.styleFrom(
+          foregroundColor: Colors.red,
+          side: const BorderSide(color: Colors.red),
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+        ),
+        icon: const Icon(Icons.logout, color: Colors.red, size: 18),
+        label: Text(
+          'Log Out',
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Colors.red,
+                fontWeight: FontWeight.w600,
+              ),
+        ),
       ),
     );
   }
@@ -215,27 +286,29 @@ class _BottomNav extends StatelessWidget {
       elevation: 4,
       height: 60,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+        padding:
+            const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            GestureDetector(onTap: () {context.push('/student/discover');},child: _NavItem(
-              icon: Icons.explore_outlined,
-              label: 'Discover',
-              isActive: false,
-            ),),
             GestureDetector(
-              onTap: () {context.push('/student/applications');},
+              onTap: () => context.go('/student/discover'),
               child: _NavItem(
-              icon: Icons.check_box_outlined,
-              label: 'Applications',
-              isActive: false,
-            ),),
-            _NavItem(
-              icon: Icons.person,
-              label: 'Profile',
-              isActive: true,
+                  icon: Icons.explore_outlined,
+                  label: 'Discover',
+                  isActive: false),
             ),
+            GestureDetector(
+              onTap: () => context.go('/student/applications'),
+              child: _NavItem(
+                  icon: Icons.check_box_outlined,
+                  label: 'Applications',
+                  isActive: false),
+            ),
+            _NavItem(
+                icon: Icons.person,
+                label: 'Profile',
+                isActive: true),
           ],
         ),
       ),
@@ -258,18 +331,18 @@ class _NavItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final color =
         isActive ? Theme.of(context).colorScheme.primary : Colors.grey;
-
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, color: color, size: 12),
+        Icon(icon, color: color, size: 24),
         const SizedBox(height: 2),
         Text(
           label,
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: color,
-                fontWeight:
-                    isActive ? FontWeight.w600 : FontWeight.w500,
+                fontWeight: isActive
+                    ? FontWeight.w600
+                    : FontWeight.w400,
               ),
         ),
       ],

@@ -1,17 +1,22 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+import '../../providers/auth_provider.dart';
+import '../../providers/opportunity_provider.dart';
 
 class StartupProfileScreen extends StatelessWidget {
   const StartupProfileScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final uid = context.read<AuthProvider>().currentUser!.uid;
+
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        // leading: const Icon(Icons.arrow_back, color: Colors.black),
         title: Text(
           'ALU Launchpad',
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -22,27 +27,81 @@ class StartupProfileScreen extends StatelessWidget {
         centerTitle: true,
       ),
       bottomNavigationBar: _BottomNav(),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _ProfileCard(),
-            const SizedBox(height: 12),
-            _StatCard(label: 'Active Postings', value: '3'),
-            const SizedBox(height: 12),
-            _StatCard(label: 'Applications', value: '12'),
-            const SizedBox(height: 12),
-            _StatCard(label: 'Rating', value: '4.8'),
-            const SizedBox(height: 24),
-          ],
-        ),
+      body: StreamBuilder<DocumentSnapshot>(
+        stream: FirebaseFirestore.instance
+            .collection('startups')
+            .doc(uid)
+            .snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          final data = snapshot.data?.data() as Map<String, dynamic>?;
+          final name = data?['name'] ?? 'Your Startup';
+          final industry = data?['industry'] ?? 'Industry';
+          final location = data?['location'] ?? 'Location';
+          final employees = data?['employees'] ?? '0';
+          final description = data?['description'] ?? '';
+          final verified = data?['verified'] ?? false;
+
+          final opportunities =
+              context.watch<OpportunityProvider>().opportunities;
+
+          return SingleChildScrollView(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _ProfileCard(
+                  name: name,
+                  industry: industry,
+                  location: location,
+                  employees: employees,
+                  description: description,
+                  verified: verified,
+                ),
+                const SizedBox(height: 12),
+                _StatCard(
+                  label: 'Active Postings',
+                  value:
+                      '${opportunities.where((o) => o.status == 'open').length}',
+                ),
+                const SizedBox(height: 12),
+                _StatCard(
+                  label: 'Total Opportunities',
+                  value: '${opportunities.length}',
+                ),
+                const SizedBox(height: 24),
+                _LogoutButton(),
+                const SizedBox(height: 24),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
 }
 
 class _ProfileCard extends StatelessWidget {
+  final String name;
+  final String industry;
+  final String location;
+  final String employees;
+  final String description;
+  final bool verified;
+
+  const _ProfileCard({
+    required this.name,
+    required this.industry,
+    required this.location,
+    required this.employees,
+    required this.description,
+    required this.verified,
+  });
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -56,20 +115,26 @@ class _ProfileCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _AvatarPlaceholder(),
+          _AvatarPlaceholder(name: name),
           const SizedBox(height: 12),
           Text(
-            'Acme Innovations',
+            name,
             style: Theme.of(context).textTheme.headlineLarge?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
           ),
           const SizedBox(height: 8),
-          _PendingVerificationBadge(),
+          _VerificationBadge(verified: verified),
           const SizedBox(height: 12),
-          _CompanyDetails(),
-          const SizedBox(height: 16),
-          _AboutSection(),
+          _CompanyDetails(
+            industry: industry,
+            location: location,
+            employees: employees,
+          ),
+          if (description.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            _AboutSection(description: description),
+          ],
           const SizedBox(height: 16),
           _EditProfileButton(),
         ],
@@ -79,32 +144,36 @@ class _ProfileCard extends StatelessWidget {
 }
 
 class _AvatarPlaceholder extends StatelessWidget {
+  final String name;
+  const _AvatarPlaceholder({required this.name});
+
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 72,
-      height: 72,
-      decoration: BoxDecoration(
-        color: Colors.grey.shade100,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Icon(
-        Icons.auto_awesome,
-        color: Colors.grey.shade400,
-        size: 32,
+    return CircleAvatar(
+      radius: 36,
+      backgroundColor:
+          Theme.of(context).colorScheme.primary.withOpacity(0.15),
+      child: Text(
+        name.isNotEmpty ? name[0].toUpperCase() : '?',
+        style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+              color: Theme.of(context).colorScheme.primary,
+              fontWeight: FontWeight.bold,
+            ),
       ),
     );
   }
 }
 
-class _PendingVerificationBadge extends StatelessWidget {
+class _VerificationBadge extends StatelessWidget {
+  final bool verified;
+  const _VerificationBadge({required this.verified});
+
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.red.shade600,
+        color: verified ? Theme.of(context).colorScheme.primary : Colors.red.shade600,
         borderRadius: BorderRadius.circular(6),
       ),
       child: Row(
@@ -113,7 +182,7 @@ class _PendingVerificationBadge extends StatelessWidget {
           const Icon(Icons.shield_outlined, color: Colors.white, size: 14),
           const SizedBox(width: 6),
           Text(
-            'PENDING VERIFICATION',
+            verified ? 'VERIFIED' : 'PENDING VERIFICATION',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
@@ -127,6 +196,16 @@ class _PendingVerificationBadge extends StatelessWidget {
 }
 
 class _CompanyDetails extends StatelessWidget {
+  final String industry;
+  final String location;
+  final String employees;
+
+  const _CompanyDetails({
+    required this.industry,
+    required this.location,
+    required this.employees,
+  });
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -134,21 +213,15 @@ class _CompanyDetails extends StatelessWidget {
       children: [
         Row(
           children: [
-            _IconLabel(
-              icon: Icons.business_outlined,
-              label: 'SaaS / Enterprise',
-            ),
+            _IconLabel(icon: Icons.business_outlined, label: industry),
             const SizedBox(width: 16),
-            _IconLabel(
-              icon: Icons.location_on_outlined,
-              label: 'Kigali, Rwanda',
-            ),
+            _IconLabel(icon: Icons.location_on_outlined, label: location),
           ],
         ),
         const SizedBox(height: 8),
         _IconLabel(
           icon: Icons.people_outline,
-          label: '10-50 Employees',
+          label: '$employees Employees',
         ),
       ],
     );
@@ -156,6 +229,9 @@ class _CompanyDetails extends StatelessWidget {
 }
 
 class _AboutSection extends StatelessWidget {
+  final String description;
+  const _AboutSection({required this.description});
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -169,7 +245,7 @@ class _AboutSection extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         Text(
-          'Acme Innovations is pioneering the next generation of cloud-based enterprise solutions for emerging markets. We focus on building scalable, accessible tools that empower local businesses to compete globally. Currently seeking driven engineering and product talent to help accelerate our growth phase.',
+          description,
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: Colors.grey.shade700,
                 height: 1.6,
@@ -186,10 +262,7 @@ class _EditProfileButton extends StatelessWidget {
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton.icon(
-        onPressed: () {
-          context.push('/startup/edit-internship');
-          // edit profile logic comes later
-        },
+        onPressed: () => context.push('/startup/edit-profile'),
         style: ElevatedButton.styleFrom(
           backgroundColor: Theme.of(context).colorScheme.primary,
           foregroundColor: Colors.white,
@@ -203,6 +276,38 @@ class _EditProfileButton extends StatelessWidget {
           'Edit Profile',
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: Colors.white,
+                fontWeight: FontWeight.w600,
+              ),
+        ),
+      ),
+    );
+  }
+}
+
+class _LogoutButton extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        onPressed: () async {
+          await context.read<AuthProvider>().signOut();
+          if (!context.mounted) return;
+          context.go('/login');
+        },
+        style: OutlinedButton.styleFrom(
+          foregroundColor: Colors.red,
+          side: const BorderSide(color: Colors.red),
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+        ),
+        icon: const Icon(Icons.logout, color: Colors.red, size: 18),
+        label: Text(
+          'Log Out',
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Colors.red,
                 fontWeight: FontWeight.w600,
               ),
         ),
@@ -287,18 +392,11 @@ class _BottomNav extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             GestureDetector(
-            onTap: () {
-              context.push('/');
-            },
-            child: _NavItem(
-              icon: Icons.dashboard_outlined,
-              isActive: true,
-            ),),
-            const SizedBox(width: 48),
-            _NavItem(
-              icon: Icons.person,
-              isActive: true,
+              onTap: () => context.go('/startup/dashboard'),
+              child: _NavItem(icon: Icons.dashboard_outlined, isActive: false),
             ),
+            const SizedBox(width: 48),
+            _NavItem(icon: Icons.person, isActive: true),
           ],
         ),
       ),

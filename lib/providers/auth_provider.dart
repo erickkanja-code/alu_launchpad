@@ -16,7 +16,6 @@ class AuthProvider extends ChangeNotifier {
   bool get isLoggedIn => _currentUser != null;
   String get role => _currentUser?.role ?? '';
 
-  // called once on app startup to restore session if user was already logged in
   Future<void> initialize() async {
     final firebaseUser = _authService.currentFirebaseUser;
     if (firebaseUser != null) {
@@ -35,6 +34,7 @@ class AuthProvider extends ChangeNotifier {
     required String email,
     required String password,
     required String role,
+    required Map<String, dynamic> extraData,
   }) async {
     _isLoading = true;
     _errorMessage = null;
@@ -45,6 +45,7 @@ class AuthProvider extends ChangeNotifier {
         email: email,
         password: password,
         role: role,
+        extraData: extraData,
       );
       _currentUser = user;
       _isLoading = false;

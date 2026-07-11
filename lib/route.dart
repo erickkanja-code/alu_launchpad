@@ -15,6 +15,7 @@ import 'screens/student/apply_form_screen.dart';
 import 'screens/student/discover_screen.dart';
 import 'screens/student/my_applications_screen.dart';
 import 'screens/student/student_profile_screen.dart';
+import 'screens/startup/edit_internship_screen.dart';
 
 final GoRouter appRouter = GoRouter(
   initialLocation: '/login',
@@ -84,6 +85,12 @@ final GoRouter appRouter = GoRouter(
       path: '/student/profile',
       builder: (context, state) => const StudentProfileScreen(),
     ),
+GoRoute(
+  path: '/startup/edit-internship/:id',
+  builder: (context, state) => EditInternshipScreen(
+    opportunityId: state.pathParameters['id']!,
+  ),
+),
     GoRoute(
       path: '/student/applications',
       builder: (context, state) => const MyApplicationsScreen(),

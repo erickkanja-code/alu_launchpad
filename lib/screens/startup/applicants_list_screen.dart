@@ -1,36 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../models/application_model.dart';
+import '../../services/application_service.dart';
 
 class ApplicantsListScreen extends StatelessWidget {
   final String opportunityId;
   const ApplicantsListScreen({super.key, required this.opportunityId});
-
-  final List<Map<String, dynamic>> _applicants = const [
-    {
-      'name': 'Elena Rodriguez',
-      'course': 'BSc Computer Science',
-      'year': 'Year 3',
-      'status': 'Pending',
-    },
-    {
-      'name': 'David Mensah',
-      'course': 'BSc Software Engineering',
-      'year': 'Year 4',
-      'status': 'Accepted',
-    },
-    {
-      'name': 'Sarah Chen',
-      'course': 'BSc Information Tech',
-      'year': 'Year 2',
-      'status': 'Rejected',
-    },
-    {
-      'name': 'Michael Osei',
-      'course': 'BSc Computer Science',
-      'year': 'Year 3',
-      'status': 'Pending',
-    },
-  ];
 
   @override
   Widget build(BuildContext context) {
@@ -39,7 +14,6 @@ class ApplicantsListScreen extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        // leading: const Icon(Icons.arrow_back, color: Colors.black),
         title: Text(
           'ALU Launchpad',
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -60,14 +34,41 @@ class ApplicantsListScreen extends StatelessWidget {
             _SearchBar(),
             const SizedBox(height: 16),
             Expanded(
-              child: ListView.separated(
-                itemCount: _applicants.length,
-                separatorBuilder: (context, index) => const Divider(
-                  height: 1,
-                  color: Color(0xFFEEEEEE),
-                ),
-                itemBuilder: (context, index) {
-                  return GestureDetector(onTap: () {context.push('/startup/applicant-detail/:applicationId');},child: _ApplicantTile(applicant: _applicants[index]));
+              child: StreamBuilder<List<ApplicationModel>>(
+                stream: ApplicationService()
+                    .getOpportunityApplicationsStream(opportunityId),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState ==
+                      ConnectionState.waiting) {
+                    return const Center(
+                        child: CircularProgressIndicator());
+                  }
+                  if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                    return const Center(
+                      child: Text(
+                        'No applicants yet',
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                    );
+                  }
+
+                  final applicants = snapshot.data!;
+
+                  return ListView.separated(
+                    itemCount: applicants.length,
+                    separatorBuilder: (_, __) => const Divider(
+                      height: 1,
+                      color: Color(0xFFEEEEEE),
+                    ),
+                    itemBuilder: (context, index) {
+                      final app = applicants[index];
+                      return GestureDetector(
+                        onTap: () => context.push(
+                            '/startup/applicant-detail/${app.id}'),
+                        child: _ApplicantTile(application: app),
+                      );
+                    },
+                  );
                 },
               ),
             ),
@@ -85,7 +86,7 @@ class _ScreenHeader extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Applicants for Software\nEngineering Intern',
+          'Applicants',
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
@@ -111,9 +112,10 @@ class _SearchBar extends StatelessWidget {
           child: TextField(
             decoration: InputDecoration(
               hintText: 'Search applicants...',
-              hintStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.grey,
-                  ),
+              hintStyle: Theme.of(context)
+                  .textTheme
+                  .bodyMedium
+                  ?.copyWith(color: Colors.grey),
               prefixIcon: const Icon(Icons.search, color: Colors.grey),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
@@ -142,9 +144,8 @@ class _SearchBar extends StatelessWidget {
 }
 
 class _ApplicantTile extends StatelessWidget {
-  final Map<String, dynamic> applicant;
-
-  const _ApplicantTile({required this.applicant});
+  final ApplicationModel application;
+  const _ApplicantTile({required this.application});
 
   @override
   Widget build(BuildContext context) {
@@ -153,40 +154,43 @@ class _ApplicantTile extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          _Avatar(name: applicant['name']),
+          _Avatar(name: application.studentName),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Expanded(
                       child: Text(
-                        applicant['name'],
-                        style:
-                            Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
+                        application.studentName,
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodyMedium
+                            ?.copyWith(fontWeight: FontWeight.bold),
                       ),
                     ),
                     const SizedBox(width: 8),
-                    _StatusBadge(status: applicant['status']),
+                    _StatusBadge(status: application.status),
                   ],
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '${applicant['course']} • ${applicant['year']}',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Colors.grey,
-                      ),
+                  application.motivation.length > 50
+                      ? '${application.motivation.substring(0, 50)}...'
+                      : application.motivation,
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodySmall
+                      ?.copyWith(color: Colors.grey),
                 ),
               ],
             ),
           ),
           const SizedBox(width: 8),
-          const Icon(Icons.more_vert, color: Colors.grey, size: 20),
+          const Icon(Icons.arrow_forward_ios,
+              color: Colors.grey, size: 14),
         ],
       ),
     );
@@ -195,16 +199,16 @@ class _ApplicantTile extends StatelessWidget {
 
 class _Avatar extends StatelessWidget {
   final String name;
-
   const _Avatar({required this.name});
 
   @override
   Widget build(BuildContext context) {
     return CircleAvatar(
       radius: 24,
-      backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.15),
+      backgroundColor:
+          Theme.of(context).colorScheme.primary.withOpacity(0.15),
       child: Text(
-        name[0].toUpperCase(),
+        name.isNotEmpty ? name[0].toUpperCase() : '?',
         style: Theme.of(context).textTheme.titleMedium?.copyWith(
               color: Theme.of(context).colorScheme.primary,
               fontWeight: FontWeight.bold,
@@ -216,14 +220,13 @@ class _Avatar extends StatelessWidget {
 
 class _StatusBadge extends StatelessWidget {
   final String status;
-
   const _StatusBadge({required this.status});
 
   Color _backgroundColor() {
     switch (status) {
-      case 'Accepted':
+      case 'accepted':
         return const Color(0xFF1A56DB);
-      case 'Rejected':
+      case 'rejected':
         return Colors.red.shade50;
       default:
         return Colors.grey.shade100;
@@ -232,9 +235,9 @@ class _StatusBadge extends StatelessWidget {
 
   Color _textColor() {
     switch (status) {
-      case 'Accepted':
+      case 'accepted':
         return Colors.white;
-      case 'Rejected':
+      case 'rejected':
         return Colors.red.shade600;
       default:
         return Colors.grey.shade600;
@@ -250,7 +253,7 @@ class _StatusBadge extends StatelessWidget {
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(
-        status,
+        status[0].toUpperCase() + status.substring(1),
         style: Theme.of(context).textTheme.bodySmall?.copyWith(
               color: _textColor(),
               fontWeight: FontWeight.w600,
@@ -274,22 +277,16 @@ class _BottomNav extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             GestureDetector(
-            onTap: () {
-              context.push('/');
-            },
-            child: _NavItem(
-              icon: Icons.dashboard_outlined,
-              isActive: true,
-            ),),
+              onTap: () => context.go('/startup/dashboard'),
+              child:
+                  _NavItem(icon: Icons.dashboard_outlined, isActive: false),
+            ),
             const SizedBox(width: 48),
             GestureDetector(
-              onTap: () {
-                context.push('/startup/startup-profile');
-              },
-              child: _NavItem(
-              icon: Icons.person_outline,
-              isActive: false,
-            ),)          ],
+              onTap: () => context.go('/startup/profile'),
+              child: _NavItem(icon: Icons.person_outline, isActive: false),
+            ),
+          ],
         ),
       ),
     );
@@ -306,7 +303,8 @@ class _NavItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return Icon(
       icon,
-      color: isActive ? Theme.of(context).colorScheme.primary : Colors.grey,
+      color:
+          isActive ? Theme.of(context).colorScheme.primary : Colors.grey,
       size: 28,
     );
   }

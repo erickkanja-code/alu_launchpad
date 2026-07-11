@@ -29,7 +29,7 @@ class _ApplyFormScreenState extends State<ApplyFormScreen> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        leading: const Icon(Icons.arrow_back, color: Colors.black),
+        // leading: const Icon(Icons.arrow_back, color: Colors.black),
         title: Text(
           'ALU Launchpad',
           style: Theme.of(context).textTheme.titleMedium?.copyWith(

@@ -1,5 +1,10 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+import '../../models/opportunity_model.dart';
+import '../../providers/auth_provider.dart';
+import '../../services/opportunity_service.dart';
 
 class NewInternshipScreen extends StatefulWidget {
   const NewInternshipScreen({super.key});
@@ -18,6 +23,7 @@ class _NewInternshipScreenState extends State<NewInternshipScreen> {
 
   String? _selectedCategory;
   bool _isRemote = false;
+  bool _isLoading = false;
 
   final List<String> _categories = [
     'Software Engineering',
@@ -40,6 +46,62 @@ class _NewInternshipScreenState extends State<NewInternshipScreen> {
     super.dispose();
   }
 
+  Future<void> _handlePost() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      final auth = context.read<AuthProvider>();
+      final uid = auth.currentUser!.uid;
+
+      // fetch startup name from Firestore
+      final startupDoc = await FirebaseFirestore.instance
+          .collection('startups')
+          .doc(uid)
+          .get();
+      final startupName =
+          startupDoc.data()?['name'] ?? 'Unknown Startup';
+
+      final opportunity = OpportunityModel(
+        id: '',
+        title: _titleController.text.trim(),
+        description: _descriptionController.text.trim(),
+        category: _selectedCategory!,
+        location: _isRemote ? 'Remote' : _locationController.text.trim(),
+        duration: _durationController.text.trim(),
+        requirements: _requirementsController.text.trim(),
+        startupId: uid,
+        startupName: startupName,
+        status: 'open',
+        createdAt: DateTime.now(),
+      );
+
+      await OpportunityService().createOpportunity(opportunity);
+
+      if (!context.mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Opportunity posted successfully!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+
+      context.go('/startup/dashboard');
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to post: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -47,7 +109,6 @@ class _NewInternshipScreenState extends State<NewInternshipScreen> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        leading: GestureDetector( onTap:() => context.push('/'),child: Icon(Icons.arrow_back, color: Colors.black),),
         title: Text(
           'ALU Launchpad',
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -89,7 +150,7 @@ class _NewInternshipScreenState extends State<NewInternshipScreen> {
                     _FieldLabel(label: 'Category / Role Type'),
                     const SizedBox(height: 6),
                     DropdownButtonFormField<String>(
-                      initialValue: _selectedCategory,
+                      value: _selectedCategory,
                       hint: const Text('Select category'),
                       decoration: const InputDecoration(
                         border: OutlineInputBorder(),
@@ -156,9 +217,14 @@ class _NewInternshipScreenState extends State<NewInternshipScreen> {
                     const SizedBox(height: 6),
                     TextFormField(
                       controller: _locationController,
-                      decoration: const InputDecoration(
+                      enabled: !_isRemote,
+                      decoration: InputDecoration(
                         hintText: 'e.g. Kigali, Rwanda',
-                        border: OutlineInputBorder(),
+                        border: const OutlineInputBorder(),
+                        fillColor: _isRemote
+                            ? Colors.grey.shade100
+                            : Colors.white,
+                        filled: _isRemote,
                       ),
                       validator: (value) {
                         if (!_isRemote &&
@@ -217,9 +283,10 @@ class _NewInternshipScreenState extends State<NewInternshipScreen> {
                     Text.rich(
                       TextSpan(
                         text: 'Keep it concise. Focus on ',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Colors.grey,
-                            ),
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodySmall
+                            ?.copyWith(color: Colors.grey),
                         children: [
                           TextSpan(
                             text: 'essential skills',
@@ -228,9 +295,7 @@ class _NewInternshipScreenState extends State<NewInternshipScreen> {
                               fontWeight: FontWeight.w600,
                             ),
                           ),
-                          const TextSpan(
-                            text: ' to encourage ',
-                          ),
+                          const TextSpan(text: ' to encourage '),
                           TextSpan(
                             text: 'diverse applicants',
                             style: TextStyle(
@@ -249,11 +314,7 @@ class _NewInternshipScreenState extends State<NewInternshipScreen> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () {
-                    if (_formKey.currentState!.validate()) {
-                      // submit logic comes Day 6
-                    }
-                  },
+                  onPressed: _isLoading ? null : _handlePost,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Theme.of(context).colorScheme.primary,
                     foregroundColor: Colors.white,
@@ -262,13 +323,25 @@ class _NewInternshipScreenState extends State<NewInternshipScreen> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
-                  child: Text(
-                    'Post Opportunity',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
+                  child: _isLoading
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : Text(
+                          'Post Opportunity',
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodyMedium
+                              ?.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                              ),
                         ),
-                  ),
                 ),
               ),
               const SizedBox(height: 24),
@@ -306,7 +379,6 @@ class _ScreenHeader extends StatelessWidget {
 
 class _FormCard extends StatelessWidget {
   final Widget child;
-
   const _FormCard({required this.child});
 
   @override

@@ -12,6 +12,7 @@ class AuthService {
     required String email,
     required String password,
     required String role,
+    required Map<String, dynamic> extraData,
   }) async {
     final credential = await _auth.createUserWithEmailAndPassword(
       email: email,
@@ -32,18 +33,18 @@ class AuthService {
     if (role == 'startup') {
       await _firestore.collection('startups').doc(uid).set({
         'uid': uid,
-        'name': '',
-        'description': '',
-        'industry': '',
-        'location': '',
-        'employees': '',
+        'name': extraData['name'] ?? '',
+        'description': extraData['description'] ?? '',
+        'industry': extraData['industry'] ?? '',
+        'location': extraData['location'] ?? '',
+        'employees': extraData['employees'] ?? '',
         'verified': false,
         'createdAt': DateTime.now(),
       });
     } else {
       await _firestore.collection('students').doc(uid).set({
         'uid': uid,
-        'name': '',
+        'name': extraData['name'] ?? '',
         'year': '',
         'skills': '',
         'bio': '',
@@ -64,11 +65,9 @@ class AuthService {
     );
 
     final uid = credential.user!.uid;
-
-    final doc = await _firestore.collection('users').doc(uid).get();
-
+    final doc =
+        await _firestore.collection('users').doc(uid).get();
     if (!doc.exists) return null;
-
     return UserModel.fromMap(doc.data()!);
   }
 

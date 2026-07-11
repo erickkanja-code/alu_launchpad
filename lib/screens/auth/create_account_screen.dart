@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/opportunity_provider.dart';
+import '../../services/auth_service.dart';
 
 class CreateAccountScreen extends StatefulWidget {
   const CreateAccountScreen({super.key});
@@ -16,15 +17,36 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
   bool _obscurePassword = true;
 
   final _formKey = GlobalKey<FormState>();
-  final _fullNameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
 
+  // student fields
+  final _fullNameController = TextEditingController();
+
+  // startup fields
+  final _startupNameController = TextEditingController();
+  final _industryController = TextEditingController();
+  final _locationController = TextEditingController();
+  final _descriptionController = TextEditingController();
+  String? _selectedEmployeeRange;
+
+  final List<String> _employeeRanges = [
+    '1-10',
+    '10-50',
+    '50-100',
+    '100-500',
+    '500+',
+  ];
+
   @override
   void dispose() {
-    _fullNameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
+    _fullNameController.dispose();
+    _startupNameController.dispose();
+    _industryController.dispose();
+    _locationController.dispose();
+    _descriptionController.dispose();
     super.dispose();
   }
 
@@ -49,13 +71,21 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
               const SizedBox(height: 24),
               _AccountForm(
                 formKey: _formKey,
-                fullNameController: _fullNameController,
+                isStudent: _isStudent,
                 emailController: _emailController,
                 passwordController: _passwordController,
                 obscurePassword: _obscurePassword,
-                isStudent: _isStudent,
                 onTogglePassword: () =>
                     setState(() => _obscurePassword = !_obscurePassword),
+                fullNameController: _fullNameController,
+                startupNameController: _startupNameController,
+                industryController: _industryController,
+                locationController: _locationController,
+                descriptionController: _descriptionController,
+                selectedEmployeeRange: _selectedEmployeeRange,
+                employeeRanges: _employeeRanges,
+                onEmployeeRangeChanged: (value) =>
+                    setState(() => _selectedEmployeeRange = value),
               ),
               const SizedBox(height: 24),
               _Footer(),
@@ -120,10 +150,7 @@ class _RoleToggle extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'I am a...',
-          style: Theme.of(context).textTheme.bodyMedium,
-        ),
+        Text('I am a...', style: Theme.of(context).textTheme.bodyMedium),
         const SizedBox(height: 8),
         Container(
           decoration: BoxDecoration(
@@ -147,10 +174,12 @@ class _RoleToggle extends StatelessWidget {
                     child: Center(
                       child: Text(
                         'Student',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: isStudent ? Colors.white : primary,
-                              fontWeight: FontWeight.w600,
-                            ),
+                        style:
+                            Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  color:
+                                      isStudent ? Colors.white : primary,
+                                  fontWeight: FontWeight.w600,
+                                ),
                       ),
                     ),
                   ),
@@ -171,10 +200,12 @@ class _RoleToggle extends StatelessWidget {
                     child: Center(
                       child: Text(
                         'Startup',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: isStudent ? primary : Colors.white,
-                              fontWeight: FontWeight.w600,
-                            ),
+                        style:
+                            Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  color:
+                                      isStudent ? primary : Colors.white,
+                                  fontWeight: FontWeight.w600,
+                                ),
                       ),
                     ),
                   ),
@@ -190,52 +221,82 @@ class _RoleToggle extends StatelessWidget {
 
 class _AccountForm extends StatelessWidget {
   final GlobalKey<FormState> formKey;
-  final TextEditingController fullNameController;
+  final bool isStudent;
   final TextEditingController emailController;
   final TextEditingController passwordController;
   final bool obscurePassword;
-  final bool isStudent;
   final VoidCallback onTogglePassword;
+  final TextEditingController fullNameController;
+  final TextEditingController startupNameController;
+  final TextEditingController industryController;
+  final TextEditingController locationController;
+  final TextEditingController descriptionController;
+  final String? selectedEmployeeRange;
+  final List<String> employeeRanges;
+  final ValueChanged<String?> onEmployeeRangeChanged;
 
   const _AccountForm({
     required this.formKey,
-    required this.fullNameController,
+    required this.isStudent,
     required this.emailController,
     required this.passwordController,
     required this.obscurePassword,
-    required this.isStudent,
     required this.onTogglePassword,
+    required this.fullNameController,
+    required this.startupNameController,
+    required this.industryController,
+    required this.locationController,
+    required this.descriptionController,
+    required this.selectedEmployeeRange,
+    required this.employeeRanges,
+    required this.onEmployeeRangeChanged,
   });
 
-Future<void> _handleSignUp(BuildContext context) async {
-  if (!formKey.currentState!.validate()) return;
+  Future<void> _handleSignUp(BuildContext context) async {
+    if (!formKey.currentState!.validate()) return;
 
-  final auth = context.read<AuthProvider>();
-  final success = await auth.signUp(
-    email: emailController.text.trim(),
-    password: passwordController.text.trim(),
-    role: isStudent ? 'student' : 'startup',
-  );
+    final auth = context.read<AuthProvider>();
 
-  if (!context.mounted) return;
+    final extraData = isStudent
+        ? {'name': fullNameController.text.trim()}
+        : {
+            'name': startupNameController.text.trim(),
+            'industry': industryController.text.trim(),
+            'location': locationController.text.trim(),
+            'description': descriptionController.text.trim(),
+            'employees': selectedEmployeeRange ?? '',
+          };
 
-  if (success) {
-    final uid = auth.currentUser!.uid;
-    final role = auth.role;
-
-    if (role == 'startup') {
-      context.read<OpportunityProvider>().listenToStartupOpportunities(uid);
-      context.go('/startup/dashboard');
-    } else {
-      context.read<OpportunityProvider>().listenToOpportunities();
-      context.go('/student/discover');
-    }
-  } else {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(auth.errorMessage ?? 'Sign up failed')),
+    final success = await auth.signUp(
+      email: emailController.text.trim(),
+      password: passwordController.text.trim(),
+      role: isStudent ? 'student' : 'startup',
+      extraData: extraData,
     );
+
+    if (!context.mounted) return;
+
+    if (success) {
+      final uid = auth.currentUser!.uid;
+      final role = auth.role;
+
+      if (role == 'startup') {
+        context
+            .read<OpportunityProvider>()
+            .listenToStartupOpportunities(uid);
+        context.go('/startup/dashboard');
+      } else {
+        context.read<OpportunityProvider>().listenToOpportunities();
+        context.go('/student/discover');
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content:
+                Text(auth.errorMessage ?? 'Sign up failed')),
+      );
+    }
   }
-}
 
   @override
   Widget build(BuildContext context) {
@@ -246,21 +307,7 @@ Future<void> _handleSignUp(BuildContext context) async {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _FieldLabel(label: 'Full Name'),
-          const SizedBox(height: 6),
-          TextFormField(
-            controller: fullNameController,
-            decoration: const InputDecoration(
-              hintText: 'Jane Doe',
-              prefixIcon: Icon(Icons.person_outline),
-              border: OutlineInputBorder(),
-            ),
-            validator: (value) {
-              if (value == null || value.trim().isEmpty) return 'Name is required';
-              return null;
-            },
-          ),
-          const SizedBox(height: 16),
+          // shared fields
           _FieldLabel(label: 'Email Address'),
           const SizedBox(height: 6),
           TextFormField(
@@ -272,7 +319,9 @@ Future<void> _handleSignUp(BuildContext context) async {
               border: OutlineInputBorder(),
             ),
             validator: (value) {
-              if (value == null || value.trim().isEmpty) return 'Email is required';
+              if (value == null || value.trim().isEmpty) {
+                return 'Email is required';
+              }
               if (!value.contains('@')) return 'Enter a valid email';
               return null;
             },
@@ -297,18 +346,138 @@ Future<void> _handleSignUp(BuildContext context) async {
               border: const OutlineInputBorder(),
             ),
             validator: (value) {
-              if (value == null || value.trim().isEmpty) return 'Password is required';
+              if (value == null || value.trim().isEmpty) {
+                return 'Password is required';
+              }
               if (value.length < 6) return 'Minimum 6 characters';
               return null;
             },
           ),
+          const SizedBox(height: 16),
+
+          // student-specific fields
+          if (isStudent) ...[
+            _FieldLabel(label: 'Full Name'),
+            const SizedBox(height: 6),
+            TextFormField(
+              controller: fullNameController,
+              decoration: const InputDecoration(
+                hintText: 'Jane Doe',
+                prefixIcon: Icon(Icons.person_outline),
+                border: OutlineInputBorder(),
+              ),
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) {
+                  return 'Name is required';
+                }
+                return null;
+              },
+            ),
+          ],
+
+          // startup-specific fields
+          if (!isStudent) ...[
+            _FieldLabel(label: 'Startup Name'),
+            const SizedBox(height: 6),
+            TextFormField(
+              controller: startupNameController,
+              decoration: const InputDecoration(
+                hintText: 'e.g. TechNova Solutions',
+                prefixIcon: Icon(Icons.business_outlined),
+                border: OutlineInputBorder(),
+              ),
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) {
+                  return 'Startup name is required';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 16),
+            _FieldLabel(label: 'Industry'),
+            const SizedBox(height: 6),
+            TextFormField(
+              controller: industryController,
+              decoration: const InputDecoration(
+                hintText: 'e.g. SaaS, Fintech, EdTech',
+                prefixIcon: Icon(Icons.category_outlined),
+                border: OutlineInputBorder(),
+              ),
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) {
+                  return 'Industry is required';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 16),
+            _FieldLabel(label: 'Location'),
+            const SizedBox(height: 6),
+            TextFormField(
+              controller: locationController,
+              decoration: const InputDecoration(
+                hintText: 'e.g. Kigali, Rwanda',
+                prefixIcon: Icon(Icons.location_on_outlined),
+                border: OutlineInputBorder(),
+              ),
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) {
+                  return 'Location is required';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 16),
+            _FieldLabel(label: 'Number of Employees'),
+            const SizedBox(height: 6),
+            DropdownButtonFormField<String>(
+              value: selectedEmployeeRange,
+              hint: const Text('Select range'),
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+              ),
+              items: employeeRanges
+                  .map((range) => DropdownMenuItem(
+                        value: range,
+                        child: Text(range),
+                      ))
+                  .toList(),
+              onChanged: onEmployeeRangeChanged,
+              validator: (value) {
+                if (value == null) return 'Please select employee range';
+                return null;
+              },
+            ),
+            const SizedBox(height: 16),
+            _FieldLabel(label: 'About Your Startup'),
+            const SizedBox(height: 6),
+            TextFormField(
+              controller: descriptionController,
+              maxLines: 4,
+              decoration: const InputDecoration(
+                hintText:
+                    'Tell students about your startup, mission and what you do...',
+                border: OutlineInputBorder(),
+                alignLabelWithHint: true,
+              ),
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) {
+                  return 'Description is required';
+                }
+                return null;
+              },
+            ),
+          ],
+
           const SizedBox(height: 24),
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: auth.isLoading ? null : () => _handleSignUp(context),
+              onPressed:
+                  auth.isLoading ? null : () => _handleSignUp(context),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Theme.of(context).colorScheme.primary,
+                backgroundColor:
+                    Theme.of(context).colorScheme.primary,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
@@ -324,12 +493,12 @@ Future<void> _handleSignUp(BuildContext context) async {
                         strokeWidth: 2,
                       ),
                     )
-                  : Text(
+                  : const Text(
                       'Create Account',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
-                          ),
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 16,
+                      ),
                     ),
             ),
           ),

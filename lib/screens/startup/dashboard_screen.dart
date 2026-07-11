@@ -1,18 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-
+import 'package:provider/provider.dart';
+import '../../providers/auth_provider.dart';
+import '../../providers/opportunity_provider.dart';
+import '../../models/opportunity_model.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final opportunityProvider = context.watch<OpportunityProvider>();
+    final authProvider = context.watch<AuthProvider>();
+    final opportunities = opportunityProvider.opportunities;
+    final startupName = authProvider.currentUser?.email ?? 'Startup';
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 1,
-        // leading: const Icon(Icons.arrow_back, color: Colors.black),
         title: Text(
           'ALU Launchpad',
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -23,33 +30,36 @@ class DashboardScreen extends StatelessWidget {
         centerTitle: true,
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          context.push('/startup/new-internship');
-          // navigate to new internship screen - Day 6
-        },
+        onPressed: () => context.push('/startup/new-internship'),
         backgroundColor: Theme.of(context).colorScheme.primary,
         child: const Icon(Icons.add, color: Colors.white),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       bottomNavigationBar: _BottomNav(),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _WelcomeSection(),
-            const SizedBox(height: 20),
-            _StatCards(),
-            const SizedBox(height: 24),
-            _PostedInternshipsSection(),
-          ],
-        ),
-      ),
+      body: opportunityProvider.isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _WelcomeSection(startupName: startupName),
+                  const SizedBox(height: 20),
+                  _StatCards(opportunities: opportunities),
+                  const SizedBox(height: 24),
+                  _PostedInternshipsSection(opportunities: opportunities),
+                ],
+              ),
+            ),
     );
   }
 }
 
 class _WelcomeSection extends StatelessWidget {
+  final String startupName;
+  const _WelcomeSection({required this.startupName});
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -57,11 +67,14 @@ class _WelcomeSection extends StatelessWidget {
       children: [
         Row(
           children: [
-            Text(
-              'Welcome, TechNova Inc.',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+            Expanded(
+              child: Text(
+                'Welcome, $startupName',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
             const SizedBox(width: 8),
             _VerifiedBadge(),
@@ -107,22 +120,28 @@ class _VerifiedBadge extends StatelessWidget {
 }
 
 class _StatCards extends StatelessWidget {
+  final List<OpportunityModel> opportunities;
+  const _StatCards({required this.opportunities});
+
   @override
   Widget build(BuildContext context) {
+    final openCount =
+        opportunities.where((o) => o.status == 'open').length;
+
     return Row(
       children: [
         Expanded(
           child: _StatCard(
             label: 'Total Opportunities',
-            value: '12',
+            value: '${opportunities.length}',
             icon: Icons.work_outline,
           ),
         ),
         const SizedBox(width: 12),
         Expanded(
           child: _StatCard(
-            label: 'Total Applicants',
-            value: '48',
+            label: 'Open',
+            value: '$openCount',
             icon: Icons.people_outline,
           ),
         ),
@@ -156,11 +175,13 @@ class _StatCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                label,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Colors.grey,
-                    ),
+              Expanded(
+                child: Text(
+                  label,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Colors.grey,
+                      ),
+                ),
               ),
               Icon(icon, size: 16, color: Colors.grey),
             ],
@@ -179,32 +200,8 @@ class _StatCard extends StatelessWidget {
 }
 
 class _PostedInternshipsSection extends StatelessWidget {
-  final List<Map<String, dynamic>> _internships = const [
-    {
-      'title': 'Frontend Developer Intern',
-      'category': 'Software Engineering',
-      'location': 'Remote',
-      'duration': '3 Months',
-      'applicants': 24,
-      'status': 'Open',
-    },
-    {
-      'title': 'Product Design Intern',
-      'category': 'Design & UX',
-      'location': 'Kigali, Rwanda',
-      'duration': '6 Months',
-      'applicants': 18,
-      'status': 'Open',
-    },
-    {
-      'title': 'Data Analyst Intern',
-      'category': 'Data Science',
-      'location': 'Hybrid',
-      'duration': '3 Months',
-      'applicants': 6,
-      'status': 'Closed',
-    },
-  ];
+  final List<OpportunityModel> opportunities;
+  const _PostedInternshipsSection({required this.opportunities});
 
   @override
   Widget build(BuildContext context) {
@@ -230,27 +227,44 @@ class _PostedInternshipsSection extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 12),
-        Column(
-          children: _internships
-              .map((internship) => Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: GestureDetector(onTap: () {context.push('/internship-detail/:opportunityId');},child: _InternshipCard(internship: internship),),
-                  ))
-              .toList(),
-        ),
+        opportunities.isEmpty
+            ? Center(
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 32),
+                  child: Text(
+                    'No opportunities posted yet',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Colors.grey,
+                        ),
+                  ),
+                ),
+              )
+            : ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: opportunities.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 12),
+                itemBuilder: (context, index) {
+                  final opp = opportunities[index];
+                  return GestureDetector(
+                    onTap: () =>
+                        context.push('/internship-detail/${opp.id}'),
+                    child: _InternshipCard(opportunity: opp),
+                  );
+                },
+              ),
       ],
     );
   }
 }
 
 class _InternshipCard extends StatelessWidget {
-  final Map<String, dynamic> internship;
-
-  const _InternshipCard({required this.internship});
+  final OpportunityModel opportunity;
+  const _InternshipCard({required this.opportunity});
 
   @override
   Widget build(BuildContext context) {
-    final bool isOpen = internship['status'] == 'Open';
+    final bool isOpen = opportunity.status == 'open';
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -267,7 +281,7 @@ class _InternshipCard extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  internship['title'],
+                  opportunity.title,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
@@ -279,7 +293,7 @@ class _InternshipCard extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            internship['category'],
+            opportunity.category,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: Theme.of(context).colorScheme.primary,
                 ),
@@ -289,17 +303,12 @@ class _InternshipCard extends StatelessWidget {
             children: [
               _IconLabel(
                 icon: Icons.location_on_outlined,
-                label: internship['location'],
+                label: opportunity.location,
               ),
               const SizedBox(width: 16),
               _IconLabel(
                 icon: Icons.access_time_outlined,
-                label: internship['duration'],
-              ),
-              const SizedBox(width: 16),
-              _IconLabel(
-                icon: Icons.people_outline,
-                label: '${internship['applicants']} Applicants',
+                label: opportunity.duration,
               ),
             ],
           ),
@@ -311,7 +320,6 @@ class _InternshipCard extends StatelessWidget {
 
 class _StatusBadge extends StatelessWidget {
   final bool isOpen;
-
   const _StatusBadge({required this.isOpen});
 
   @override
@@ -366,29 +374,20 @@ class _BottomNav extends StatelessWidget {
       shape: const CircularNotchedRectangle(),
       notchMargin: 4,
       color: Colors.white,
-      // elevation: 2,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             GestureDetector(
-            onTap: () {
-              context.push('/');
-            },
-            child: _NavItem(
-              icon: Icons.dashboard_outlined,
-              isActive: true,
-            ),),
-            const SizedBox(width: 8), // space for FAB
+              onTap: () => context.go('/startup/dashboard'),
+              child: _NavItem(icon: Icons.dashboard_outlined, isActive: true),
+            ),
+            const SizedBox(width: 8),
             GestureDetector(
-              onTap: () {
-                context.push('/startup/profile');
-              },
-              child: _NavItem(
-              icon: Icons.person_outline,
-              isActive: false,
-            ),)
+              onTap: () => context.push('/startup/profile'),
+              child: _NavItem(icon: Icons.person_outline, isActive: false),
+            ),
           ],
         ),
       ),
@@ -400,22 +399,15 @@ class _NavItem extends StatelessWidget {
   final IconData icon;
   final bool isActive;
 
-  const _NavItem({
-    required this.icon,
-    required this.isActive,
-  });
+  const _NavItem({required this.icon, required this.isActive});
 
   @override
   Widget build(BuildContext context) {
-    final color = isActive
-        ? Theme.of(context).colorScheme.primary
-        : Colors.grey;
-
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, color: color),
-      ],
+    return Icon(
+      icon,
+      color: isActive
+          ? Theme.of(context).colorScheme.primary
+          : Colors.grey,
     );
   }
 }

@@ -1,4 +1,8 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+import '../../providers/auth_provider.dart';
 
 class EditStartupProfileScreen extends StatefulWidget {
   const EditStartupProfileScreen({super.key});
@@ -8,35 +12,120 @@ class EditStartupProfileScreen extends StatefulWidget {
       _EditStartupProfileScreenState();
 }
 
-class _EditStartupProfileScreenState extends State<EditStartupProfileScreen> {
+class _EditStartupProfileScreenState
+    extends State<EditStartupProfileScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController(text: 'Acme Innovations');
-  final _industryController = TextEditingController(text: 'SaaS / Enterprise');
-  final _locationController = TextEditingController(text: 'Kigali, Rwanda');
-  final _employeesController = TextEditingController(text: '10-50');
-  final _aboutController = TextEditingController(
-    text:
-        'Acme Innovations is pioneering the next generation of cloud-based enterprise solutions for emerging markets. We focus on building scalable, accessible tools that empower local businesses to compete globally. Currently seeking driven engineering and product talent to help accelerate our growth phase.',
-  );
+  final _nameController = TextEditingController();
+  final _industryController = TextEditingController();
+  final _locationController = TextEditingController();
+  final _aboutController = TextEditingController();
+  String? _selectedEmployees;
+  bool _isLoading = true;
+  bool _isSaving = false;
+
+  final List<String> _employeeRanges = [
+    '1-10',
+    '10-50',
+    '50-100',
+    '100-500',
+    '500+',
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfile();
+  }
+
+  Future<void> _loadProfile() async {
+    final uid =
+        context.read<AuthProvider>().currentUser!.uid;
+    final doc = await FirebaseFirestore.instance
+        .collection('startups')
+        .doc(uid)
+        .get();
+
+    if (doc.exists && mounted) {
+      final data = doc.data()!;
+      setState(() {
+        _nameController.text = data['name'] ?? '';
+        _industryController.text = data['industry'] ?? '';
+        _locationController.text = data['location'] ?? '';
+        _aboutController.text = data['description'] ?? '';
+        _selectedEmployees = data['employees']?.toString();
+        if (_selectedEmployees != null &&
+            !_employeeRanges.contains(_selectedEmployees)) {
+          _selectedEmployees = null;
+        }
+        _isLoading = false;
+      });
+    } else {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _handleSave() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isSaving = true);
+
+    try {
+      final uid =
+          context.read<AuthProvider>().currentUser!.uid;
+      await FirebaseFirestore.instance
+          .collection('startups')
+          .doc(uid)
+          .update({
+        'name': _nameController.text.trim(),
+        'industry': _industryController.text.trim(),
+        'location': _locationController.text.trim(),
+        'description': _aboutController.text.trim(),
+        'employees': _selectedEmployees ?? '',
+      });
+
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Profile updated successfully!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+      context.pop();
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to save: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
+  }
 
   @override
   void dispose() {
     _nameController.dispose();
     _industryController.dispose();
     _locationController.dispose();
-    _employeesController.dispose();
     _aboutController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        // leading: const Icon(Icons.arrow_back, color: Colors.black),
         title: Text(
           'ALU Launchpad',
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -47,7 +136,8 @@ class _EditStartupProfileScreenState extends State<EditStartupProfileScreen> {
         centerTitle: true,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        padding:
+            const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         child: Form(
           key: _formKey,
           child: Column(
@@ -61,9 +151,10 @@ class _EditStartupProfileScreenState extends State<EditStartupProfileScreen> {
                   children: [
                     Text(
                       'Basic Information',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleMedium
+                          ?.copyWith(fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 16),
                     _FieldLabel(label: 'Startup Name'),
@@ -115,15 +206,23 @@ class _EditStartupProfileScreenState extends State<EditStartupProfileScreen> {
                     const SizedBox(height: 16),
                     _FieldLabel(label: 'Number of Employees'),
                     const SizedBox(height: 6),
-                    TextFormField(
-                      controller: _employeesController,
+                    DropdownButtonFormField<String>(
+                      value: _selectedEmployees,
+                      hint: const Text('Select range'),
                       decoration: const InputDecoration(
-                        hintText: 'e.g. 1-10, 10-50, 50-100',
                         border: OutlineInputBorder(),
                       ),
+                      items: _employeeRanges
+                          .map((range) => DropdownMenuItem(
+                                value: range,
+                                child: Text(range),
+                              ))
+                          .toList(),
+                      onChanged: (value) =>
+                          setState(() => _selectedEmployees = value),
                       validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Employee count is required';
+                        if (value == null) {
+                          return 'Please select employee range';
                         }
                         return null;
                       },
@@ -138,9 +237,10 @@ class _EditStartupProfileScreenState extends State<EditStartupProfileScreen> {
                   children: [
                     Text(
                       'About the Startup',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleMedium
+                          ?.copyWith(fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 16),
                     _FieldLabel(label: 'Description'),
@@ -160,13 +260,6 @@ class _EditStartupProfileScreenState extends State<EditStartupProfileScreen> {
                         return null;
                       },
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'A clear description helps students understand your mission and decide if they are a good fit.',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Colors.grey,
-                          ),
-                    ),
                   ],
                 ),
               ),
@@ -175,52 +268,65 @@ class _EditStartupProfileScreenState extends State<EditStartupProfileScreen> {
                 children: [
                   Expanded(
                     child: OutlinedButton(
-                      onPressed: () {
-                        // go back - navigation
-                      },
+                      onPressed: () => context.pop(),
                       style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        padding:
+                            const EdgeInsets.symmetric(vertical: 14),
                         side: BorderSide(
-                            color: Theme.of(context).colorScheme.primary),
+                            color: Theme.of(context)
+                                .colorScheme
+                                .primary),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
                       ),
                       child: Text(
                         'Cancel',
-                        style:
-                            Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                  color: Theme.of(context).colorScheme.primary,
-                                  fontWeight: FontWeight.w600,
-                                ),
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodyMedium
+                            ?.copyWith(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .primary,
+                              fontWeight: FontWeight.w600,
+                            ),
                       ),
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: () {
-                        if (_formKey.currentState!.validate()) {
-                          // save logic - Day 6
-                        }
-                      },
+                      onPressed: _isSaving ? null : _handleSave,
                       style: ElevatedButton.styleFrom(
                         backgroundColor:
                             Theme.of(context).colorScheme.primary,
                         foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        padding:
+                            const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
                       ),
-                      child: Text(
-                        'Save Changes',
-                        style:
-                            Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                      ),
+                      child: _isSaving
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : Text(
+                              'Save Changes',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodyMedium
+                                  ?.copyWith(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                            ),
                     ),
                   ),
                 ],
@@ -260,7 +366,6 @@ class _ScreenHeader extends StatelessWidget {
 
 class _FormCard extends StatelessWidget {
   final Widget child;
-
   const _FormCard({required this.child});
 
   @override

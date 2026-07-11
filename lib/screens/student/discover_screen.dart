@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+import '../../providers/opportunity_provider.dart';
+import '../../models/opportunity_model.dart';
 
 class DiscoverScreen extends StatefulWidget {
   const DiscoverScreen({super.key});
@@ -9,7 +12,6 @@ class DiscoverScreen extends StatefulWidget {
 }
 
 class _DiscoverScreenState extends State<DiscoverScreen> {
-  String _selectedCategory = 'All';
   final _searchController = TextEditingController();
 
   final List<String> _categories = [
@@ -20,63 +22,17 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
     'Marketing',
   ];
 
-  final List<Map<String, dynamic>> _internships = const [
-    {
-      'category': 'Software Engineering',
-      'title': 'Frontend Developer Intern',
-      'company': 'TechNova Solutions',
-      'location': 'Kigali, Rwanda',
-      'duration': '3 Months',
-    },
-    {
-      'category': 'Data Science',
-      'title': 'Data Analyst Internship',
-      'company': 'Kigali Analytics Group',
-      'location': 'Remote',
-      'duration': '6 Months',
-    },
-    {
-      'category': 'Product Management',
-      'title': 'Product Associate Intern',
-      'company': 'FinTech Africa',
-      'location': 'Nairobi, Kenya',
-      'duration': '4 Months',
-    },
-    {
-      'category': 'Marketing',
-      'title': 'Growth Marketing Intern',
-      'company': 'EcoSoko',
-      'location': 'Hybrid - Kigali',
-      'duration': '3 Months',
-    },
-    {
-      'category': 'Software Engineering',
-      'title': 'Backend Systems Intern',
-      'company': 'CloudNative Labs',
-      'location': 'Remote',
-      'duration': '6 Months',
-    },
-  ];
-
   @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
   }
 
-  List<Map<String, dynamic>> get _filtered {
-    return _internships.where((item) {
-      final matchesCategory = _selectedCategory == 'All' ||
-          item['category'] == _selectedCategory;
-      final matchesSearch = item['title']
-          .toLowerCase()
-          .contains(_searchController.text.toLowerCase());
-      return matchesCategory && matchesSearch;
-    }).toList();
-  }
-
   @override
   Widget build(BuildContext context) {
+    final provider = context.watch<OpportunityProvider>();
+    final opportunities = provider.filteredOpportunities;
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -91,51 +47,59 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
               ),
         ),
         centerTitle: true,
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 16),
-            child: Icon(
-              Icons.search,
-              color: Theme.of(context).colorScheme.primary,
-            ),
-          ),
-        ],
       ),
       bottomNavigationBar: _BottomNav(),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-            child: _SearchBar(controller: _searchController, onChanged: (_) => setState(() {})),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            child: _SearchBar(
+              controller: _searchController,
+              onChanged: (value) {
+                context
+                    .read<OpportunityProvider>()
+                    .setSearchQuery(value);
+              },
+            ),
           ),
           _CategoryChips(
             categories: _categories,
-            selected: _selectedCategory,
-            onSelected: (cat) => setState(() => _selectedCategory = cat),
+            selected: provider.selectedCategory,
+            onSelected: (cat) {
+              context.read<OpportunityProvider>().setCategory(cat);
+            },
           ),
           const SizedBox(height: 8),
           Expanded(
-            child: _filtered.isEmpty
-                ? Center(
-                    child: Text(
-                      'No internships found',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: Colors.grey,
-                          ),
-                    ),
-                  )
-                : ListView.separated(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 20, vertical: 8),
-                    itemCount: _filtered.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 12),
-                    itemBuilder: (context, index) {
-                      return GestureDetector(
-                      onTap: () {context.push('/internshipdetail/:opportunityId');},
-                      child: _InternshipCard(internship: _filtered[index]));
-                    },
-                  ),
+            child: provider.isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : opportunities.isEmpty
+                    ? Center(
+                        child: Text(
+                          'No internships found',
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodyMedium
+                              ?.copyWith(color: Colors.grey),
+                        ),
+                      )
+                    : ListView.separated(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 20, vertical: 8),
+                        itemCount: opportunities.length,
+                        separatorBuilder: (_, __) =>
+                            const SizedBox(height: 12),
+                        itemBuilder: (context, index) {
+                          final opp = opportunities[index];
+                          return GestureDetector(
+                            onTap: () => context
+                                .push('/internship-detail/${opp.id}'),
+                            child: _InternshipCard(opportunity: opp),
+                          );
+                        },
+                      ),
           ),
         ],
       ),
@@ -147,7 +111,8 @@ class _SearchBar extends StatelessWidget {
   final TextEditingController controller;
   final ValueChanged<String> onChanged;
 
-  const _SearchBar({required this.controller, required this.onChanged});
+  const _SearchBar(
+      {required this.controller, required this.onChanged});
 
   @override
   Widget build(BuildContext context) {
@@ -156,9 +121,10 @@ class _SearchBar extends StatelessWidget {
       onChanged: onChanged,
       decoration: InputDecoration(
         hintText: 'Search Internships...',
-        hintStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Colors.grey,
-            ),
+        hintStyle: Theme.of(context)
+            .textTheme
+            .bodyMedium
+            ?.copyWith(color: Colors.grey),
         prefixIcon: const Icon(Icons.search, color: Colors.grey),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
@@ -170,8 +136,8 @@ class _SearchBar extends StatelessWidget {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide(
-              color: Theme.of(context).colorScheme.primary),
+          borderSide:
+              BorderSide(color: Theme.of(context).colorScheme.primary),
         ),
         contentPadding: const EdgeInsets.symmetric(vertical: 12),
         filled: true,
@@ -207,7 +173,8 @@ class _CategoryChips extends StatelessWidget {
           return GestureDetector(
             onTap: () => onSelected(cat),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
                 color: isSelected
                     ? Theme.of(context).colorScheme.primary
@@ -222,7 +189,9 @@ class _CategoryChips extends StatelessWidget {
               child: Text(
                 cat,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: isSelected ? Colors.white : Colors.grey.shade700,
+                      color: isSelected
+                          ? Colors.white
+                          : Colors.grey.shade700,
                       fontWeight: isSelected
                           ? FontWeight.w600
                           : FontWeight.w400,
@@ -237,9 +206,9 @@ class _CategoryChips extends StatelessWidget {
 }
 
 class _InternshipCard extends StatelessWidget {
-  final Map<String, dynamic> internship;
+  final OpportunityModel opportunity;
 
-  const _InternshipCard({required this.internship});
+  const _InternshipCard({required this.opportunity});
 
   @override
   Widget build(BuildContext context) {
@@ -257,8 +226,8 @@ class _InternshipCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
                   color: Theme.of(context)
                       .colorScheme
@@ -267,11 +236,13 @@ class _InternshipCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
-                  internship['category'],
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Theme.of(context).colorScheme.primary,
-                        fontWeight: FontWeight.w500,
-                      ),
+                  opportunity.category,
+                  style:
+                      Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color:
+                                Theme.of(context).colorScheme.primary,
+                            fontWeight: FontWeight.w500,
+                          ),
                 ),
               ),
               Icon(
@@ -283,14 +254,14 @@ class _InternshipCard extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            internship['title'],
+            opportunity.title,
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
           ),
           const SizedBox(height: 2),
           Text(
-            internship['company'],
+            opportunity.startupName,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: Theme.of(context).colorScheme.primary,
                   fontWeight: FontWeight.w500,
@@ -301,12 +272,12 @@ class _InternshipCard extends StatelessWidget {
             children: [
               _IconLabel(
                 icon: Icons.location_on_outlined,
-                label: internship['location'],
+                label: opportunity.location,
               ),
               const SizedBox(width: 16),
               _IconLabel(
                 icon: Icons.access_time_outlined,
-                label: internship['duration'],
+                label: opportunity.duration,
               ),
             ],
           ),
@@ -348,7 +319,8 @@ class _BottomNav extends StatelessWidget {
       elevation: 4,
       height: 60,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+        padding:
+            const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
@@ -358,17 +330,21 @@ class _BottomNav extends StatelessWidget {
               isActive: true,
             ),
             GestureDetector(
-              onTap: () {context.push('/student/applications');},
+              onTap: () => context.push('/student/applications'),
               child: _NavItem(
-              icon: Icons.check_box_outlined,
-              label: 'Applications',
-              isActive: false,
-            ),),
-            GestureDetector(onTap: () {context.push('/student/studentprofile');},child: _NavItem(
-              icon: Icons.person_outline,
-              label: 'Profile',
-              isActive: false,
-            ),),
+                icon: Icons.check_box_outlined,
+                label: 'Applications',
+                isActive: false,
+              ),
+            ),
+            GestureDetector(
+              onTap: () => context.push('/student/profile'),
+              child: _NavItem(
+                icon: Icons.person_outline,
+                label: 'Profile',
+                isActive: false,
+              ),
+            ),
           ],
         ),
       ),
