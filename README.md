@@ -1,17 +1,39 @@
-# alu_launchpad
+# ALU Launchpad
 
-A new Flutter project.
+ALU Launchpad is a Flutter mobile application developed as a formative project at African Leadership University. The platform connects ALU students seeking internship opportunities with student-led startups looking for talent across software development, design, marketing, business, and other disciplines.
 
-## Getting Started
+The project was built using Flutter, Firebase Authentication, Cloud Firestore, Provider for state management, and GoRouter for navigation.
 
-This project is a starting point for a Flutter application.
+## Demo Video
 
-A few resources to get you started if this is your first Flutter project:
+Watch the project demonstration here:
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+**[https://drive.google.com/drive/folders/1l9A-E8XhuTHTINiQVhvB64Go65hiA9eb?usp=sharing](https://drive.google.com/file/d/11iMS_jNmY2NwIKJjoctfei5nS4vJYniB/view?usp=sharing)**
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## Project Report
+
+The complete technical report is available in this repository and covers:
+
+- System architecture
+- Firebase backend design
+- State management approach
+- Application workflows
+- UI/UX design decisions
+- Scalability considerations
+- Challenges encountered
+- Testing strategy
+- Limitations and future improvements
+
+
+
+## Repository Contents
+
+- `/lib` – Flutter application source code
+- `/assets` – Images and application assets
+- `Erick_Kanja_FinalFlutterProject.pdf` – Technical project report
+
+## Author
+
+**Erick Muchiri Kanja**  
+BSc (Hons) Software Engineering  
+African Leadership University
